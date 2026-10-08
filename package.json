@@ -1,0 +1,33 @@
+{
+  "name": "uptime-monitor",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx server.ts",
+    "build": "next build",
+    "start": "NODE_ENV=production tsx server.ts",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "next": "15.5.27",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "ssh2": "^1.17.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ssh2": "^1.15.6",
+    "@types/ws": "^8.18.2",
+    "autoprefixer": "^10.6.1",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.27",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
+    "typescript": "^5"
+  }
+}
