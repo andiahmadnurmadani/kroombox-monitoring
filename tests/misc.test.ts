@@ -58,3 +58,26 @@ test("suara upload dikenali dari magic bytes", async () => {
   assert.equal(sniffSound(Buffer.concat([Buffer.from("\0\0\0\x20ftypM4A "), pad])), "m4a");
   assert.equal(sniffSound(Buffer.concat([Buffer.from("<html><script>"), pad])), null);
 });
+
+test("poller SSH tidak macet bila koneksi ditutup sebelum siap", async () => {
+  const net = await import("net");
+  const { PersistentSshPoller } = await import("../src/lib/persistent-ssh-poller");
+  // server yang menerima TCP lalu langsung menutupnya, seperti host yang sedang reboot
+  const server = net.createServer((sock) => sock.destroy());
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", () => r()));
+  const port = (server.address() as import("net").AddressInfo).port;
+  const results: (string | null)[] = [];
+  const poller = new PersistentSshPoller(
+    { host: "127.0.0.1", port, username: "x", auth: { method: "password", password: "x" } },
+    1000,
+    "true",
+    () => "ok",
+    (_r, err) => results.push(err),
+  );
+  poller.start();
+  await new Promise((r) => setTimeout(r, 3000));
+  poller.stop();
+  server.close();
+  assert.ok(results.length >= 1, "onResult harus dipanggil, bukan menunggu selamanya");
+  assert.ok(results.every((e) => typeof e === "string" && e.length > 0));
+});

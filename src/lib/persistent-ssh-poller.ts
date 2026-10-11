@@ -76,6 +76,17 @@ export class PersistentSshPoller<T> {
     this.loop();
   }
 
+  /** Drop whatever connection (or attempt) is in place; the next round starts from scratch. */
+  private resetConnection() {
+    try {
+      this.conn?.end();
+    } catch {
+      /* already gone */
+    }
+    this.conn = null;
+    this.connecting = null;
+  }
+
   stop() {
     this.stopped = true;
     if (this.timer) clearTimeout(this.timer);
@@ -90,8 +101,23 @@ export class PersistentSshPoller<T> {
 
     this.connecting = new Promise((resolve, reject) => {
       const conn = new Client();
+      let settled = false;
+      const fail = (err: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(guard);
+        this.conn = null;
+        this.connecting = null;
+        conn.end();
+        reject(err);
+      };
+      // Belt and braces on top of ssh2's readyTimeout: a connect attempt must always end.
+      const guard = setTimeout(() => fail(Object.assign(new Error("connect timeout"), { level: "client-timeout" })), CONNECT_TIMEOUT_MS + 5000);
       conn
         .on("ready", () => {
+          if (settled) return conn.end();
+          settled = true;
+          clearTimeout(guard);
           this.connecting = null;
           if (this.stopped) {
             // stop() ran while we were still handshaking: don't leak this connection
@@ -102,12 +128,12 @@ export class PersistentSshPoller<T> {
           this.conn = conn;
           resolve(conn);
         })
-        .on("error", (err) => {
-          this.conn = null;
-          this.connecting = null;
-          reject(err);
-        })
+        .on("error", (err) => fail(err))
         .on("close", () => {
+          // Closed before it was ever ready (e.g. the host rebooted mid-handshake): without this the
+          // attempt never settled and the poller waited forever — a host stayed "unreachable"
+          // for hours after it came back.
+          if (!settled) fail(Object.assign(new Error("connection closed during handshake"), { code: "ECONNRESET" }));
           // next loop() tick reconnects automatically
           if (this.conn === conn) this.conn = null;
         })
@@ -120,9 +146,11 @@ export class PersistentSshPoller<T> {
     if (this.stopped) return;
     let nextDelay = this.intervalMs;
     try {
-      const conn = await this.connect();
+      const conn = await withTimeout(this.connect(), CONNECT_TIMEOUT_MS + 10_000, () => this.resetConnection());
       this.consecutiveConnectFailures = 0;
-      const result = await execParse(conn, this.command, this.parse);
+      const result = await withTimeout(execParse(conn, this.command, this.parse), EXEC_TIMEOUT_MS + 5000, () =>
+        this.resetConnection(),
+      );
       if (this.stopped) return;
       this.onResult(result, result === null ? "Perintah metrik gagal dijalankan (host bukan Linux?)" : null);
     } catch (err) {
@@ -144,6 +172,26 @@ export class PersistentSshPoller<T> {
       this.timer = setTimeout(() => this.loop(), nextDelay);
     }
   }
+}
+
+/** Rejects (and runs `onTimeout`) if `promise` has not settled in `ms` — nothing may hang a poller. */
+function withTimeout<T>(promise: Promise<T>, ms: number, onTimeout: () => void): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      onTimeout();
+      reject(Object.assign(new Error("timeout"), { level: "client-timeout" }));
+    }, ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
 }
 
 export function execParse<T>(conn: Client, command: string, parse: (out: string) => T | null): Promise<T | null> {
@@ -188,6 +236,7 @@ export function sshProbe<T>(
         done({ result, error: result === null ? "Login berhasil, tapi perintah metrik gagal (host bukan Linux?)" : null });
       })
       .on("error", (err) => done({ result: null, error: describeSshError(err) }))
+      .on("close", () => done({ result: null, error: "Koneksi SSH diputus" }))
       .connect(connectConfig(target));
   });
 }
