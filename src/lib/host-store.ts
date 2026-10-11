@@ -102,13 +102,26 @@ export function parseHostInput(body: Record<string, unknown>, existing?: HostCon
     return { ok: false, error: `Interval harus ${LIMITS.minIntervalSec}-${LIMITS.maxIntervalSec} detik` };
   }
 
+  // A stored password is only reused for the very same destination: otherwise
+  // pointing an existing host at another machine (and pressing "Test koneksi")
+  // would hand the saved password to whoever runs that machine.
+  const sameSshTarget =
+    !!existing && host === existing.host && port === existing.port && username === existing.username;
+
   const method = (body.authMethod ?? existing?.auth.method ?? "password") as SshAuth["method"];
   let auth: SshAuth;
   if (method === "password") {
     const given = typeof body.password === "string" ? body.password : "";
-    const kept = existing?.auth.method === "password" ? existing.auth.password : "";
+    const kept = sameSshTarget && existing?.auth.method === "password" ? existing.auth.password : "";
     const password = given || kept;
-    if (!password) return { ok: false, error: "Password SSH wajib diisi" };
+    if (!password) {
+      return {
+        ok: false,
+        error: existing?.auth.method === "password" && !sameSshTarget
+          ? "Host, port, atau username berubah: masukkan ulang password SSH"
+          : "Password SSH wajib diisi",
+      };
+    }
     auth = { method: "password", password };
   } else if (method === "key") {
     const given = typeof body.privateKey === "string" ? body.privateKey.trim() : "";
@@ -139,19 +152,27 @@ export function parseHostInput(body: Record<string, unknown>, existing?: HostCon
     }
     const dsmUser = raw.username !== undefined ? str(raw.username) : prev?.username ?? "";
     const dsmPassGiven = typeof raw.password === "string" ? raw.password : "";
-    // a different DSM account keeps its stored password; switching back to "same as
-    // SSH" (empty username) drops it so a stale secret doesn't linger in the file
-    const dsmPass = dsmUser ? dsmPassGiven || prev?.password || "" : "";
+    const dsmHttps = bool(raw.https, prev?.https ?? true);
+    // same rule as SSH: the stored DSM password only goes back to the same DSM.
+    // Switching to "same as SSH" (empty username) drops it so it doesn't linger.
+    const sameDsmTarget =
+      !!prev && host === existing?.host && dsmPort === prev.port && dsmHttps === prev.https && dsmUser === (prev.username ?? "");
+    const dsmPass = dsmUser ? dsmPassGiven || (sameDsmTarget ? prev?.password : "") || "" : "";
     dsm = {
       enabled,
       port: dsmPort,
-      https: bool(raw.https, prev?.https ?? true),
+      https: dsmHttps,
       intervalSec: dsmInterval,
       ...(dsmUser ? { username: dsmUser } : {}),
       ...(dsmPass ? { password: dsmPass } : {}),
     };
     if (enabled && dsmUser && !dsmPass) {
-      return { ok: false, error: "Password DSM wajib diisi bila akun DSM berbeda dari SSH" };
+      return {
+        ok: false,
+        error: prev?.password && !sameDsmTarget
+          ? "Alamat, port, atau akun DSM berubah: masukkan ulang password DSM"
+          : "Password DSM wajib diisi bila akun DSM berbeda dari SSH",
+      };
     }
   }
 

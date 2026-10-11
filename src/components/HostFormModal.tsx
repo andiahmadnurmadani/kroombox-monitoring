@@ -191,6 +191,10 @@ export default function HostFormModal({
   }
 
   const keepHint = "tersimpan — kosongkan bila tidak diubah";
+  // the server only reuses a stored password for the same host/port/user
+  const targetChanged =
+    !!existing && (host.trim() !== existing.host || Number(port) !== existing.port || username.trim() !== existing.username);
+  const passwordKept = !!existing?.hasPassword && !targetChanged;
   const title = `${existing ? "Edit" : "Tambah"} ${kind === "nas" ? "NAS" : "Server"}`;
 
   return (
@@ -247,10 +251,13 @@ export default function HostFormModal({
                     onChange={(e) => setPassword(e.target.value)}
                     type="password"
                     autoComplete="new-password"
-                    required={!existing?.hasPassword}
-                    placeholder={existing?.hasPassword ? keepHint : ""}
+                    required={!passwordKept}
+                    placeholder={passwordKept ? keepHint : ""}
                     className={INPUT}
                   />
+                  {existing?.hasPassword && targetChanged && (
+                    <p className="mt-1 text-[11px] text-amber-300/80">Host, port, atau username berubah: ketik ulang password.</p>
+                  )}
                 </div>
               ) : (
                 <>

@@ -126,3 +126,23 @@ test("hosts.json ditulis dengan izin 0600 dan memicu listener", async () => {
   assert.equal(calls, 2);
   fs.rmSync(dir, { recursive: true, force: true });
 });
+
+test("password tersimpan tidak dipakai ulang bila tujuan koneksi diganti", () => {
+  const first = parseHostInput({ ...base, kind: "nas", dsm: { enabled: true, username: "dsmadmin", password: "dsm-pass" } });
+  assert.ok(first.ok);
+  if (!first.ok) return;
+  for (const change of [{ host: "203.0.113.66" }, { port: 2222 }, { username: "lain" }]) {
+    const r = parseHostInput({ ...change, password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+    assert.equal(r.ok, false, JSON.stringify(change));
+    if (!r.ok) assert.match(r.error, /masukkan ulang password SSH/);
+  }
+  // SSH password diketik ulang, tapi DSM ikut pindah host → password DSM juga wajib diketik ulang
+  const moved = parseHostInput({ host: "203.0.113.66", password: "baru", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+  assert.equal(moved.ok, false);
+  if (!moved.ok) assert.match(moved.error, /password DSM/);
+  const dsmPort = parseHostInput({ password: "", dsm: { enabled: true, username: "dsmadmin", port: 5000, https: false, password: "" } }, first.config);
+  assert.equal(dsmPort.ok, false);
+  // tujuan sama → tetap boleh tanpa mengetik ulang
+  const same = parseHostInput({ label: "Nama baru", password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+  assert.ok(same.ok);
+});
