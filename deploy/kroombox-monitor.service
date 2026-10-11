@@ -1,0 +1,36 @@
+# Template — scripts/install.sh fills in the @PLACEHOLDERS@ and installs it to
+# /etc/systemd/system/kroombox-monitor.service.
+[Unit]
+Description=Kroombox Monitor (website, server & NAS monitoring dashboard)
+Documentation=https://github.com/andiahmadnurmadani/uptime-monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@USER@
+WorkingDirectory=@INSTALL_DIR@
+EnvironmentFile=@CONF_DIR@/kroombox-monitor.env
+ExecStart=@NODE@ @INSTALL_DIR@/node_modules/tsx/dist/cli.mjs server.ts
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+
+# Hardening: the service only needs to write its data directory and Next's cache.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=@PROTECT_HOME@
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+ReadWritePaths=@DATA_DIR@ @INSTALL_DIR@/.next/cache
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

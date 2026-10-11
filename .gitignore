@@ -32,8 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
-# runtime data: monitor/nas/server status cache + auth.json (password hash, session secret)
+# runtime data: monitors, hosts.json (SSH credentials!), auth.json (password hash, session secret)
 /data
 
 # vercel
