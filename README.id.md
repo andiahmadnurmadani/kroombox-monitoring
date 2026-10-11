@@ -1,4 +1,10 @@
-# Kroombox Monitor
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
+    <img src="docs/logo-light.png" alt="Kroombox logo" height="44" align="center">
+  </picture>
+  Kroombox Monitor
+</h1>
 
 Dashboard monitoring real-time yang di-host sendiri untuk **website**, **server Linux**, dan **NAS**: cukup satu layanan Node.js kecil, tanpa database, dan tanpa agen yang harus dipasang di mesin yang dipantau.
 

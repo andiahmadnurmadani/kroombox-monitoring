@@ -1,4 +1,10 @@
-# Kroombox Monitor
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
+    <img src="docs/logo-light.png" alt="Kroombox logo" height="44" align="center">
+  </picture>
+  Kroombox Monitor
+</h1>
 
 Self-hosted, real-time monitoring dashboard for **websites**, **Linux servers** and **NAS** — one small Node.js service, no database, no agents to install on the machines you watch.
 
