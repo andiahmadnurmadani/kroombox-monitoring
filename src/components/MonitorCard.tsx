@@ -2,6 +2,7 @@
 
 import type { Monitor } from "@/lib/types";
 import HeartbeatBar from "./HeartbeatBar";
+import CardActions from "./CardActions";
 
 function timeAgo(ts: number | null): string {
   if (!ts) return "belum pernah dicek";
@@ -57,46 +58,23 @@ export default function MonitorCard({
     <div className="group relative flex flex-col overflow-hidden rounded-xl border border-neutral-800 bg-neutral-900/60 p-4 pl-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-neutral-700 hover:shadow-lg hover:shadow-black/20">
       <span className={`absolute left-0 top-0 h-full w-1 ${meta.accent}`} />
 
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} />
-            <h3 className="truncate text-xl font-semibold text-neutral-100">
-              {monitor.name}
-            </h3>
-          </div>
-          <a
-            href={monitor.url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1 block truncate text-sm text-neutral-400 transition-colors hover:text-neutral-200"
-          >
-            {monitor.url}
-          </a>
+      <div className="min-w-0 pr-16 sm:pr-0">
+        <div className="flex items-center gap-2">
+          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${meta.dot}`} />
+          <h3 className="truncate text-xl font-semibold text-neutral-100">
+            {monitor.name}
+          </h3>
         </div>
-        <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-          <button
-            onClick={() => onEdit(monitor)}
-            className="rounded p-1.5 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-100"
-            title="Edit"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M12 20h9" />
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
-            </svg>
-          </button>
-          <button
-            onClick={() => onDelete(monitor)}
-            className="rounded p-1.5 text-neutral-400 hover:bg-red-900/60 hover:text-red-200"
-            title="Hapus"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M3 6h18" />
-              <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-            </svg>
-          </button>
-        </div>
+        <a
+          href={monitor.url}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-1 block truncate text-sm text-neutral-400 transition-colors hover:text-neutral-200"
+        >
+          {monitor.url}
+        </a>
       </div>
+      <CardActions onEdit={() => onEdit(monitor)} onDelete={() => onDelete(monitor)} />
 
       <div className="mt-4">
         <HeartbeatBar history={monitor.history} />

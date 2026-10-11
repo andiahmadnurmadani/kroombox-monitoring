@@ -3,9 +3,13 @@ import { parse } from "url";
 import next from "next";
 import { WebSocketServer } from "ws";
 import { verifySessionFromCookieHeader } from "./src/lib/session-token";
+import { CLIENT_IP_HEADER } from "./src/lib/rate-limit";
 
 const dev = process.env.NODE_ENV !== "production";
 const port = parseInt(process.env.PORT ?? "3400", 10);
+// 0.0.0.0 = reachable from the network; set 127.0.0.1 when a reverse proxy or
+// Cloudflare Tunnel on the same machine is the only way in.
+const bindAddress = process.env.BIND_ADDRESS || "0.0.0.0";
 
 // created before `next({dev})`/app.prepare() runs, so instrumentation.ts's
 // register() (which fires during prepare) already sees `global.__wss` set
@@ -24,6 +28,9 @@ const handle = app.getRequestHandler();
 
 app.prepare().then(() => {
   const server = createServer((req, res) => {
+    // route handlers can't see the socket; hand them the real peer address
+    // (overwriting anything a client sent under the same name)
+    req.headers[CLIENT_IP_HEADER] = req.socket.remoteAddress ?? "unknown";
     handle(req, res, parse(req.url ?? "", true));
   });
 
@@ -51,7 +58,7 @@ app.prepare().then(() => {
     });
   });
 
-  server.listen(port, "0.0.0.0", () => {
-    console.log(`> Ready on http://0.0.0.0:${port} (ws: /ws)`);
+  server.listen(port, bindAddress, () => {
+    console.log(`> Ready on http://${bindAddress}:${port} (ws: /ws)`);
   });
 });

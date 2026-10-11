@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { loadAppSettings } from "@/lib/app-settings";
 
-export const metadata: Metadata = {
-  title: "Uptime Monitor",
-  description: "Dashboard monitoring status website",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: loadAppSettings().appName,
+    description: "Dashboard monitoring website, server, dan NAS",
+    icons: { icon: "/branding/logo", apple: "/branding/logo" },
+  };
+}
 
 export default function RootLayout({
   children,

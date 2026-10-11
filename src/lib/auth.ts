@@ -9,7 +9,7 @@ import {
   SESSION_MAX_AGE_SEC,
 } from "./session-token";
 
-export async function login(username: string, password: string): Promise<boolean> {
+export async function login(username: string, password: string, secure = false): Promise<boolean> {
   const cfg = loadAuthConfig();
   if (username !== cfg.username || !verifyPassword(password, cfg.passwordHash)) {
     return false;
@@ -18,6 +18,7 @@ export async function login(username: string, password: string): Promise<boolean
   store.set(SESSION_COOKIE, createSessionToken(cfg.username), {
     httpOnly: true,
     sameSite: "lax",
+    secure,
     path: "/",
     maxAge: SESSION_MAX_AGE_SEC,
   });

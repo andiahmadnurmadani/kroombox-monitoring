@@ -1,0 +1,128 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { hostsFromLegacyEnv, parseHostInput, toView } from "../src/lib/host-store";
+import type { HostConfig } from "../src/lib/host-types";
+
+const base = { kind: "server", label: "Web 1", host: "10.0.0.5", username: "ops", password: "rahasia", intervalSec: 5 };
+
+test("server baru valid → config lengkap dengan default", () => {
+  const r = parseHostInput(base);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  assert.equal(r.config.port, 22);
+  assert.equal(r.config.enabled, true);
+  assert.deepEqual(r.config.auth, { method: "password", password: "rahasia" });
+  assert.equal(r.config.dsm, undefined);
+  assert.match(r.config.id, /^h_[0-9a-f]{8}$/);
+});
+
+test("input tidak valid ditolak dengan pesan jelas", () => {
+  const cases: [Record<string, unknown>, RegExp][] = [
+    [{ ...base, label: "" }, /Nama/],
+    [{ ...base, host: "bad host;rm" }, /host/i],
+    [{ ...base, port: 70000 }, /Port/],
+    [{ ...base, username: "a b" }, /Username/],
+    [{ ...base, intervalSec: 0 }, /Interval/],
+    [{ ...base, password: "" }, /Password SSH/],
+    [{ ...base, authMethod: "key", privateKey: "bukan key" }, /private key/i],
+    [{ ...base, kind: "router" }, /Jenis/],
+  ];
+  for (const [input, err] of cases) {
+    const r = parseHostInput(input);
+    assert.equal(r.ok, false, JSON.stringify(input));
+    if (!r.ok) assert.match(r.error, err);
+  }
+});
+
+test("edit dengan secret kosong mempertahankan secret lama", () => {
+  const first = parseHostInput({ ...base, kind: "nas", dsm: { enabled: true, username: "dsmadmin", password: "dsm-pass" } });
+  assert.ok(first.ok);
+  if (!first.ok) return;
+  const edited = parseHostInput({ label: "Ganti nama", password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+  assert.ok(edited.ok);
+  if (!edited.ok) return;
+  assert.equal(edited.config.id, first.config.id);
+  assert.equal(edited.config.label, "Ganti nama");
+  assert.deepEqual(edited.config.auth, { method: "password", password: "rahasia" });
+  assert.equal(edited.config.dsm?.password, "dsm-pass");
+  // kembali ke "akun DSM = akun SSH": password DSM lama dibuang
+  const same = parseHostInput({ dsm: { enabled: true, username: "" } }, edited.config);
+  assert.ok(same.ok && same.config.dsm?.password === undefined && same.config.dsm?.username === undefined);
+});
+
+test("private key diterima, passphrase lama dipakai bila key tidak diganti", () => {
+  const key = "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n-----END OPENSSH PRIVATE KEY-----";
+  const r = parseHostInput({ ...base, authMethod: "key", privateKey: key, passphrase: "pp" });
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  const again = parseHostInput({ authMethod: "key", privateKey: "", passphrase: "" }, r.config);
+  assert.ok(again.ok);
+  if (!again.ok) return;
+  assert.equal(again.config.auth.method, "key");
+  if (again.config.auth.method === "key") assert.equal(again.config.auth.passphrase, "pp");
+});
+
+test("toView tidak pernah membawa password atau private key", () => {
+  const r = parseHostInput({ ...base, kind: "nas", dsm: { enabled: true, username: "u", password: "dsm-secret" } });
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  const json = JSON.stringify(toView(r.config));
+  assert.ok(!json.includes("rahasia") && !json.includes("dsm-secret"));
+  assert.equal(toView(r.config).hasPassword, true);
+  assert.equal(toView(r.config).dsm?.hasPassword, true);
+});
+
+test("konfigurasi lama .env.local (NAS_* + SERVERS_JSON) diimpor apa adanya", () => {
+  const hosts = hostsFromLegacyEnv({
+    NAS_HOST: "100.1.1.1",
+    NAS_PORT: "5001",
+    NAS_USER: "nasuser",
+    NAS_PASS: "naspass",
+    NAS_LABEL: "Synology",
+    NAS_INTERVAL_SEC: "30",
+    NAS_SSH_INTERVAL_MS: "2000",
+    SERVERS_INTERVAL_MS: "1000",
+    SERVERS_JSON: JSON.stringify([
+      { id: "web", label: "Web", host: "100.1.1.2", username: "a", password: "b" },
+      { id: "db", label: "DB", host: "100.1.1.3", port: 2222, username: "c", password: "d" },
+      { id: "rusak", label: "Tanpa password", host: "100.1.1.4", username: "e" },
+    ]),
+  });
+  assert.deepEqual(hosts.map((h) => h.id), ["nas", "web", "db"]);
+  const nas = hosts[0] as HostConfig;
+  assert.equal(nas.kind, "nas");
+  assert.equal(nas.label, "Synology");
+  assert.equal(nas.intervalSec, 2);
+  assert.deepEqual(nas.dsm, { enabled: true, port: 5001, https: true, intervalSec: 30 });
+  assert.equal(hosts[2].port, 2222);
+  assert.equal(hosts[1].intervalSec, 1);
+});
+
+test("tanpa konfigurasi lama → daftar kosong", () => {
+  assert.deepEqual(hostsFromLegacyEnv({}), []);
+  assert.deepEqual(hostsFromLegacyEnv({ SERVERS_JSON: "{bukan json" }), []);
+});
+
+test("hosts.json ditulis dengan izin 0600 dan memicu listener", async () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "km-test-"));
+  process.env.DATA_DIR = dir;
+  delete global.__hostStore;
+  const { hostStore } = await import("../src/lib/host-store");
+  const store = hostStore();
+  let calls = 0;
+  store.onChange(() => calls++);
+  const r = parseHostInput(base);
+  assert.ok(r.ok);
+  if (!r.ok) return;
+  store.add(r.config);
+  const file = path.join(dir, "hosts.json");
+  assert.equal(fs.statSync(file).mode & 0o777, 0o600);
+  assert.equal(JSON.parse(fs.readFileSync(file, "utf-8")).hosts.length, 1);
+  assert.equal(store.remove(r.config.id), true);
+  assert.equal(store.remove(r.config.id), false);
+  assert.equal(calls, 2);
+  fs.rmSync(dir, { recursive: true, force: true });
+});

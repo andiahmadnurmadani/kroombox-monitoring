@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import SoundSettingsCard from "./SoundSettingsCard";
+import AppSettingsCard from "./AppSettingsCard";
+import SoundFilesCard from "./SoundFilesCard";
 
 export default function SettingsForm({ currentUsername }: { currentUsername: string }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -49,8 +52,8 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
   }
 
   return (
-    <div className="flex min-h-screen justify-center bg-neutral-950 px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="flex h-screen justify-center overflow-y-auto bg-neutral-950 px-4 py-10">
+      <div className="h-fit w-full max-w-md pb-10">
         <div className="mb-5 flex items-center justify-between">
           <h1 className="text-base font-semibold text-neutral-100">Settings</h1>
           <Link
@@ -60,6 +63,8 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
             ← Kembali ke dashboard
           </Link>
         </div>
+
+        <AppSettingsCard />
 
         <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/70 p-6 shadow-xl shadow-black/30">
           <h2 className="mb-1 text-sm font-semibold text-neutral-100">Akun Login</h2>
@@ -78,7 +83,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-neutral-400">
-                Password Baru <span className="text-neutral-600">(kosongkan jika tidak diganti)</span>
+                Password Baru <span className="text-neutral-600">(min. 8 karakter, kosongkan jika tidak diganti)</span>
               </label>
               <input
                 value={newPassword}
@@ -126,14 +131,8 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
           </form>
         </div>
 
-        <div className="mt-4 rounded-2xl border border-neutral-800/60 bg-neutral-900/40 p-4 text-xs text-neutral-500">
-          <p className="font-medium text-neutral-400">Konfigurasi NAS &amp; interval</p>
-          <p className="mt-1">
-            Host, kredensial NAS, dan interval polling diatur lewat file{" "}
-            <code className="rounded bg-neutral-800 px-1 py-0.5 text-neutral-300">.env.local</code>{" "}
-            di server (bukan di sini), supaya kredensial infra tidak tersimpan dalam data yang bisa diubah lewat UI.
-          </p>
-        </div>
+        <SoundSettingsCard />
+        <SoundFilesCard />
       </div>
     </div>
   );

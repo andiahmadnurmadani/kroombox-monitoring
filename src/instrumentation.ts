@@ -4,12 +4,14 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
     const { startAll } = await import("./lib/scheduler");
     startAll();
-    const { startNasMonitor, getNasStatus } = await import("./lib/nas-scheduler");
-    startNasMonitor();
-    const { startServersMonitor, getServersStatus } = await import("./lib/servers-scheduler");
-    startServersMonitor();
+    const { infraMonitor } = await import("./lib/infra-monitor");
+    infraMonitor().start();
     const { store } = await import("./lib/store");
     const { broadcast } = await import("./lib/ws-broadcast");
+    // creates data/auth.json (and logs the first admin password) at boot rather
+    // than on the first page view, so it shows up right in `journalctl`
+    const { loadAuthConfig } = await import("./lib/session-token");
+    loadAuthConfig();
 
     // push a fresh monitor list to every client the moment anything changes
     // (created/edited/deleted/checked) instead of waiting for their next poll
@@ -21,8 +23,7 @@ export async function register() {
     if (wss) {
       wss.on("connection", (ws: WebSocket) => {
         ws.send(JSON.stringify({ type: "monitors", data: store.list() }));
-        ws.send(JSON.stringify({ type: "nas", data: getNasStatus() }));
-        ws.send(JSON.stringify({ type: "servers", data: getServersStatus() }));
+        ws.send(JSON.stringify({ type: "hosts", data: infraMonitor().list() }));
       });
     }
   }

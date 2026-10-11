@@ -1,10 +1,8 @@
-import fs from "fs";
-import path from "path";
 import { randomUUID } from "crypto";
+import { dataFile, readJson, writeJson } from "./data-dir";
 import type { Monitor, MonitorInput } from "./types";
 
-const DATA_DIR = path.join(process.cwd(), "data");
-const DATA_FILE = path.join(DATA_DIR, "monitors.json");
+const DATA_FILE = "monitors.json";
 const MAX_HISTORY = 50;
 
 type Listener = () => void;
@@ -18,22 +16,13 @@ class MonitorStore {
   }
 
   private load() {
-    try {
-      if (fs.existsSync(DATA_FILE)) {
-        const raw = fs.readFileSync(DATA_FILE, "utf-8");
-        const arr: Monitor[] = JSON.parse(raw);
-        for (const m of arr) this.monitors.set(m.id, m);
-      }
-    } catch {
-      // corrupt or missing file: start empty, next save() will recreate it
-    }
+    // corrupt or missing file: start empty, next save() will recreate it
+    for (const m of readJson<Monitor[]>(dataFile(DATA_FILE)) ?? []) this.monitors.set(m.id, m);
   }
 
   private save() {
     try {
-      if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-      const arr = Array.from(this.monitors.values());
-      fs.writeFileSync(DATA_FILE, JSON.stringify(arr, null, 2));
+      writeJson(dataFile(DATA_FILE), Array.from(this.monitors.values()));
     } catch (e) {
       console.error("Failed to persist monitors.json:", e);
     }
@@ -118,9 +107,9 @@ class MonitorStore {
 }
 
 declare global {
-  // eslint-disable-next-line no-var
   var __monitorStore: MonitorStore | undefined;
 }
 
-export const store: MonitorStore = global.__monitorStore ?? new MonitorStore();
-if (process.env.NODE_ENV !== "production") global.__monitorStore = store;
+// always pinned on `global`: instrumentation (which runs the checks) and the route
+// handlers (which edit monitors) must share one store, not each load their own copy
+export const store: MonitorStore = global.__monitorStore ?? (global.__monitorStore = new MonitorStore());

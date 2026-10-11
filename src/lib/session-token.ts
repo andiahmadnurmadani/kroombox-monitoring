@@ -1,9 +1,9 @@
-import fs from "fs";
-import path from "path";
 import crypto from "crypto";
+import { dataFile, readJson, writeJson } from "./data-dir";
 
-const AUTH_FILE = path.join(process.cwd(), "data", "auth.json");
+const AUTH_FILE = "auth.json";
 const SESSION_DAYS = 30;
+export const MIN_PASSWORD_LENGTH = 8;
 
 interface AuthConfig {
   username: string;
@@ -27,26 +27,33 @@ export function verifyPassword(password: string, stored: string): boolean {
 }
 
 export function loadAuthConfig(): AuthConfig {
-  try {
-    if (fs.existsSync(AUTH_FILE)) {
-      return JSON.parse(fs.readFileSync(AUTH_FILE, "utf-8"));
-    }
-  } catch {
-    // fall through to reseed defaults below
-  }
+  const saved = readJson<AuthConfig>(dataFile(AUTH_FILE));
+  if (saved?.passwordHash && saved.sessionSecret) return saved;
+
+  // First start: no well-known default password. ADMIN_PASSWORD (set by the
+  // installer or the operator) wins; otherwise a random one is printed once to the
+  // log, the same way e.g. Jenkins/Grafana-style first-run setups do it.
+  const username = process.env.ADMIN_USERNAME?.trim() || "admin";
+  const given = process.env.ADMIN_PASSWORD ?? "";
+  const password = given || crypto.randomBytes(9).toString("base64url");
   const cfg: AuthConfig = {
-    username: "admin",
-    passwordHash: hashPassword("admin"),
+    username,
+    passwordHash: hashPassword(password),
     sessionSecret: crypto.randomBytes(32).toString("hex"),
   };
   saveAuthConfig(cfg);
+  if (!given) {
+    console.log("================================================================");
+    console.log(` Akun admin awal dibuat -> username: ${username}  password: ${password}`);
+    console.log(" Segera ganti lewat Settings, atau: npm run passwd");
+    console.log("================================================================");
+  }
   return cfg;
 }
 
 export function saveAuthConfig(cfg: AuthConfig) {
-  const dir = path.dirname(AUTH_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(AUTH_FILE, JSON.stringify(cfg, null, 2));
+  // holds the password hash and the cookie-signing secret: owner-only
+  writeJson(dataFile(AUTH_FILE), cfg, 0o600);
 }
 
 function sign(payload: string, secret: string): string {
@@ -101,8 +108,8 @@ export function changeCredentialsCore(
   }
   if (nextUsername && nextUsername.trim()) cfg.username = nextUsername.trim();
   if (nextPassword) {
-    if (nextPassword.length < 4) {
-      return { ok: false, error: "Password baru minimal 4 karakter" };
+    if (nextPassword.length < MIN_PASSWORD_LENGTH) {
+      return { ok: false, error: `Password baru minimal ${MIN_PASSWORD_LENGTH} karakter` };
     }
     cfg.passwordHash = hashPassword(nextPassword);
   }
