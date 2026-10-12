@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import { dataFile, readJson, writeJson } from "./data-dir";
 import type { Monitor, MonitorInput } from "./types";
+import { DEFAULT_RETRIES, DEFAULT_RETRY_INTERVAL_SEC, nextStatus } from "./monitor-rules";
 
 const DATA_FILE = "monitors.json";
 const MAX_HISTORY = 50;
@@ -17,7 +18,13 @@ class MonitorStore {
 
   private load() {
     // corrupt or missing file: start empty, next save() will recreate it
-    for (const m of readJson<Monitor[]>(dataFile(DATA_FILE)) ?? []) this.monitors.set(m.id, m);
+    for (const m of readJson<Monitor[]>(dataFile(DATA_FILE)) ?? []) {
+      // monitors saved before retries existed
+      m.retries ??= DEFAULT_RETRIES;
+      m.retryIntervalSec ??= DEFAULT_RETRY_INTERVAL_SEC;
+      m.failCount ??= m.status === "down" ? m.retries + 1 : 0;
+      this.monitors.set(m.id, m);
+    }
   }
 
   private save() {
@@ -51,6 +58,9 @@ class MonitorStore {
       name: input.name.trim(),
       url: input.url.trim(),
       intervalSec: Math.max(5, Math.floor(input.intervalSec)),
+      retries: input.retries ?? DEFAULT_RETRIES,
+      retryIntervalSec: input.retryIntervalSec ?? DEFAULT_RETRY_INTERVAL_SEC,
+      failCount: 0,
       status: "pending",
       lastCheckedAt: null,
       lastResponseTimeMs: null,
@@ -71,6 +81,8 @@ class MonitorStore {
     if (patch.name !== undefined) m.name = patch.name.trim();
     if (patch.url !== undefined) m.url = patch.url.trim();
     if (patch.intervalSec !== undefined) m.intervalSec = Math.max(5, Math.floor(patch.intervalSec));
+    if (patch.retries !== undefined) m.retries = patch.retries;
+    if (patch.retryIntervalSec !== undefined) m.retryIntervalSec = patch.retryIntervalSec;
     this.save();
     this.notify();
     return m;
@@ -85,12 +97,13 @@ class MonitorStore {
     const m = this.monitors.get(id);
     if (!m) return;
     const now = Date.now();
-    m.status = result.ok ? "up" : "down";
+    m.failCount = result.ok ? 0 : m.failCount + 1;
+    m.status = nextStatus(m.status, m.failCount, m.retries, result.ok);
     m.lastCheckedAt = now;
     m.lastResponseTimeMs = result.ms;
     m.lastStatusCode = result.statusCode;
     m.lastError = result.error;
-    m.history.push({ t: now, ok: result.ok, ms: result.ms });
+    m.history.push(m.status === "retrying" ? { t: now, ok: false, ms: result.ms, retry: true } : { t: now, ok: result.ok, ms: result.ms });
     if (m.history.length > MAX_HISTORY) m.history.shift();
     this.save();
     this.notify();

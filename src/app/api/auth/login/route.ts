@@ -7,7 +7,7 @@ export async function POST(req: NextRequest) {
   const wait = loginBlockedFor(ip);
   if (wait > 0) {
     return NextResponse.json(
-      { error: `Terlalu banyak percobaan gagal. Coba lagi dalam ${Math.ceil(wait / 60)} menit.` },
+      { error: `Too many failed attempts. Try again in ${Math.ceil(wait / 60)} min.` },
       { status: 429, headers: { "Retry-After": String(wait) } }
     );
   }
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
   const ok = await login(username, password, secure);
   if (!ok) {
     recordLoginFailure(ip);
-    return NextResponse.json({ error: "Username atau password salah" }, { status: 401 });
+    return NextResponse.json({ error: "Wrong username or password" }, { status: 401 });
   }
   clearLoginFailures(ip);
   return NextResponse.json({ ok: true });

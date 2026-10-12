@@ -58,18 +58,18 @@ async function main() {
   }
   if (!password) {
     if (!process.stdin.isTTY) {
-      console.error("Tidak ada terminal: set ADMIN_PASSWORD untuk mode non-interaktif.");
+      console.error("No terminal: set ADMIN_PASSWORD for non-interactive mode.");
       process.exit(1);
     }
-    password = await ask("Password baru: ", true);
-    const again = await ask("Ulangi password: ", true);
+    password = await ask("New password: ", true);
+    const again = await ask("Repeat password: ", true);
     if (password !== again) {
-      console.error("Password tidak sama.");
+      console.error("Passwords do not match.");
       process.exit(1);
     }
   }
   if (password.length < MIN_PASSWORD_LENGTH) {
-    console.error(`Password minimal ${MIN_PASSWORD_LENGTH} karakter.`);
+    console.error(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
     process.exit(1);
   }
 
@@ -78,7 +78,7 @@ async function main() {
     passwordHash: hashPassword(password),
     sessionSecret: crypto.randomBytes(32).toString("hex"),
   });
-  console.log(`Login diperbarui untuk "${username}" (${dataFile("auth.json")}). Sesi lama otomatis keluar.`);
+  console.log(`Login updated for "${username}" (${dataFile("auth.json")}). Existing sessions are signed out.`);
 }
 
 main();

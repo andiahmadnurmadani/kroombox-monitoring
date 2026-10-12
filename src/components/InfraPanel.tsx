@@ -20,10 +20,10 @@ export default function InfraPanel({
     <section className="mb-5">
       <div className="mb-2 flex items-center justify-between gap-2">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Infrastruktur
+          Infrastructure
           {hosts.length > 0 && (
             <span className="ml-2 font-normal normal-case tracking-normal text-neutral-600">
-              {hosts.length} host{down > 0 && <span className="text-red-400"> · {down} tidak terjangkau</span>}
+              {hosts.length} {hosts.length === 1 ? "host" : "hosts"}{down > 0 && <span className="text-red-400"> · {down} unreachable</span>}
             </span>
           )}
         </h2>
@@ -40,7 +40,7 @@ export default function InfraPanel({
       </div>
       {hosts.length === 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-neutral-800 px-4 py-3 text-sm text-neutral-500">
-          <span>Pantau load, RAM, disk & uptime server atau NAS lewat SSH.</span>
+          <span>Monitor load, RAM, disk & uptime of servers or NAS over SSH.</span>
           <div className="flex gap-2">
             <button onClick={() => onAdd("server")} className="rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-800">
               + Server

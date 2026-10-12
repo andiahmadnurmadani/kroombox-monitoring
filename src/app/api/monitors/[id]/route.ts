@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { store } from "@/lib/store";
 import { reschedule, unschedule } from "@/lib/scheduler";
 import { isAuthenticated } from "@/lib/auth";
+import { parseRetryFields, type RetryFields } from "@/lib/monitor-rules";
 
 export async function PATCH(
   req: NextRequest,
@@ -12,11 +13,11 @@ export async function PATCH(
   }
   const { id } = await params;
   const body = await req.json();
-  const patch: { name?: string; url?: string; intervalSec?: number } = {};
+  const patch: { name?: string; url?: string; intervalSec?: number } & RetryFields = {};
 
   if (body.name !== undefined) {
     if (typeof body.name !== "string" || !body.name.trim()) {
-      return NextResponse.json({ error: "Nama tidak boleh kosong" }, { status: 400 });
+      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
     }
     patch.name = body.name;
   }
@@ -24,23 +25,28 @@ export async function PATCH(
     try {
       new URL(body.url);
     } catch {
-      return NextResponse.json({ error: "URL tidak valid" }, { status: 400 });
+      return NextResponse.json({ error: "Invalid URL" }, { status: 400 });
     }
     patch.url = body.url;
   }
   if (body.intervalSec !== undefined) {
     const n = Number(body.intervalSec);
     if (!Number.isFinite(n) || n < 5) {
-      return NextResponse.json({ error: "Interval heartbeat minimal 5 detik" }, { status: 400 });
+      return NextResponse.json({ error: "Heartbeat interval must be at least 5 seconds" }, { status: 400 });
     }
     patch.intervalSec = n;
   }
+  const retry = parseRetryFields(body);
+  if (!retry.ok) {
+    return NextResponse.json({ error: retry.error }, { status: 400 });
+  }
+  Object.assign(patch, retry.value);
 
   const monitor = store.update(id, patch);
   if (!monitor) {
-    return NextResponse.json({ error: "Monitor tidak ditemukan" }, { status: 404 });
+    return NextResponse.json({ error: "Monitor not found" }, { status: 404 });
   }
-  if (patch.intervalSec !== undefined || patch.url !== undefined) {
+  if (patch.intervalSec !== undefined || patch.retryIntervalSec !== undefined || patch.url !== undefined) {
     reschedule(id);
   }
   return NextResponse.json({ monitor });
@@ -57,7 +63,7 @@ export async function DELETE(
   unschedule(id);
   const removed = store.remove(id);
   if (!removed) {
-    return NextResponse.json({ error: "Monitor tidak ditemukan" }, { status: 404 });
+    return NextResponse.json({ error: "Monitor not found" }, { status: 404 });
   }
   return NextResponse.json({ ok: true });
 }

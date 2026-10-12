@@ -90,7 +90,7 @@ export default function Dashboard({ appName }: { appName: string }) {
         for (const m of next) {
           if (prev[m.id] === "down" && m.status === "up") {
             playSound("/branding/sound/recovery");
-          } else if (prev[m.id] === "up" && m.status === "down") {
+          } else if ((prev[m.id] === "up" || prev[m.id] === "retrying") && m.status === "down") {
             playSound("/branding/sound/down");
           }
         }
@@ -177,7 +177,7 @@ export default function Dashboard({ appName }: { appName: string }) {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      return data.error ?? "Gagal menambah monitor";
+      return data.error ?? "Failed to add monitor";
     }
     setModalOpen(false);
     // no manual refresh needed: the server pushes the updated list over the
@@ -193,18 +193,18 @@ export default function Dashboard({ appName }: { appName: string }) {
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
-      return data.error ?? "Gagal menyimpan perubahan";
+      return data.error ?? "Failed to save changes";
     }
     setEditing(null);
   }
 
   async function handleDelete(m: Monitor) {
-    if (!confirm(`Hapus monitor "${m.name}"?`)) return;
+    if (!confirm(`Delete monitor "${m.name}"?`)) return;
     await fetch(`/api/monitors/${m.id}`, { method: "DELETE" });
   }
 
   async function handleDeleteHost(h: HostStatus) {
-    if (!confirm(`Hapus ${h.kind === "nas" ? "NAS" : "server"} "${h.label}" dari pemantauan?`)) return;
+    if (!confirm(`Stop monitoring ${h.kind === "nas" ? "NAS" : "server"} "${h.label}" and delete it?`)) return;
     await fetch(`/api/hosts/${encodeURIComponent(h.id)}`, { method: "DELETE" });
   }
 
@@ -221,6 +221,7 @@ export default function Dashboard({ appName }: { appName: string }) {
 
   const upCount = monitors.filter((m) => m.status === "up").length;
   const downCount = monitors.filter((m) => m.status === "down").length;
+  const retryingCount = monitors.filter((m) => m.status === "retrying").length;
   const pendingCount = monitors.filter((m) => m.status === "pending").length;
 
   const query = search.trim().toLowerCase();
@@ -231,8 +232,8 @@ export default function Dashboard({ appName }: { appName: string }) {
         )
       : monitors
   ).slice().sort((a, b) => {
-    if (sortOrder === "name-asc") return a.name.localeCompare(b.name, "id", { sensitivity: "base" });
-    if (sortOrder === "name-desc") return b.name.localeCompare(a.name, "id", { sensitivity: "base" });
+    if (sortOrder === "name-asc") return a.name.localeCompare(b.name, "en", { sensitivity: "base" });
+    if (sortOrder === "name-desc") return b.name.localeCompare(a.name, "en", { sensitivity: "base" });
     return 0;
   });
 
@@ -251,7 +252,7 @@ export default function Dashboard({ appName }: { appName: string }) {
                 ? "bg-emerald-950/60 text-emerald-400 ring-1 ring-inset ring-emerald-800/50"
                 : "bg-neutral-800/70 text-neutral-400"
             }`}
-            title={live ? "Terhubung real-time via WebSocket" : "Terputus, mencoba menyambung ulang..."}
+            title={live ? "Connected in real time via WebSocket" : "Disconnected, trying to reconnect..."}
           >
             <span
               className={`h-1.5 w-1.5 rounded-full ${
@@ -267,6 +268,11 @@ export default function Dashboard({ appName }: { appName: string }) {
             <span className="flex items-center gap-1.5 rounded-full bg-red-950/60 px-2.5 py-1 text-red-400 ring-1 ring-inset ring-red-800/50">
               <span className="h-1.5 w-1.5 rounded-full bg-red-400" /> {downCount} down
             </span>
+            {retryingCount > 0 && (
+              <span className="flex items-center gap-1.5 rounded-full bg-amber-950/60 px-2.5 py-1 text-amber-300 ring-1 ring-inset ring-amber-800/50">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400" /> {retryingCount} retrying
+              </span>
+            )}
             {pendingCount > 0 && (
               <span className="flex items-center gap-1.5 rounded-full bg-neutral-800/70 px-2.5 py-1 text-neutral-400">
                 {pendingCount} pending
@@ -283,16 +289,16 @@ export default function Dashboard({ appName }: { appName: string }) {
               aria-expanded={addMenuOpen}
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white shadow-sm shadow-emerald-900/40 transition-colors hover:bg-emerald-500"
             >
-              + Tambah
+              + Add
             </button>
             {addMenuOpen && (
               <>
                 <div className="fixed inset-0 z-30" onClick={() => setAddMenuOpen(false)} />
                 <div role="menu" className="absolute right-0 z-40 mt-1 w-52 overflow-hidden rounded-lg border border-neutral-700 bg-neutral-900 py-1 shadow-xl">
                   {[
-                    { kind: "website" as const, title: "Website", hint: "Cek HTTP/HTTPS berkala" },
+                    { kind: "website" as const, title: "Website", hint: "Periodic HTTP/HTTPS checks" },
                     { kind: "server" as const, title: "Server", hint: "Load, RAM, disk via SSH" },
-                    { kind: "nas" as const, title: "NAS", hint: "SSH + suhu disk Synology" },
+                    { kind: "nas" as const, title: "NAS", hint: "SSH + Synology disk temperatures" },
                   ].map((item) => (
                     <button
                       key={item.kind}
@@ -320,7 +326,7 @@ export default function Dashboard({ appName }: { appName: string }) {
           </Link>
           <button
             onClick={handleLogout}
-            title="Keluar"
+            title="Sign out"
             className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-red-950/60 hover:text-red-300"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -341,12 +347,12 @@ export default function Dashboard({ appName }: { appName: string }) {
         />
         {loaded && monitors.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-2 text-neutral-500">
-            <p className="text-sm">Belum ada web yang dimonitor.</p>
+            <p className="text-sm">No websites are being monitored yet.</p>
             <button
               onClick={() => setModalOpen(true)}
               className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
             >
-              + Tambah Website Pertama
+              + Add Your First Website
             </button>
           </div>
         ) : (
@@ -354,7 +360,7 @@ export default function Dashboard({ appName }: { appName: string }) {
             {monitors.length > 0 && (
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-                  Website
+                  Websites
                 </h2>
                 <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-initial">
                   <div className="relative w-full max-w-[220px]">
@@ -371,26 +377,26 @@ export default function Dashboard({ appName }: { appName: string }) {
                     <input
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Cari nama web..."
+                      placeholder="Search websites..."
                       className="w-full rounded-lg border border-neutral-800 bg-neutral-900/60 py-1.5 pl-8 pr-3 text-sm text-neutral-200 outline-none placeholder:text-neutral-500 focus:border-emerald-600"
                     />
                   </div>
                   <select
                     value={sortOrder}
                     onChange={(e) => setSortOrder(e.target.value as typeof sortOrder)}
-                    title="Urutkan"
+                    title="Sort"
                     className="rounded-lg border border-neutral-800 bg-neutral-900/60 py-1.5 pl-2.5 pr-7 text-sm text-neutral-300 outline-none focus:border-emerald-600"
                   >
-                    <option value="name-asc">Nama (A-Z)</option>
-                    <option value="name-desc">Nama (Z-A)</option>
-                    <option value="default">Urutan Ditambahkan</option>
+                    <option value="name-asc">Name (A-Z)</option>
+                    <option value="name-desc">Name (Z-A)</option>
+                    <option value="default">Date Added</option>
                   </select>
                 </div>
               </div>
             )}
             {filteredMonitors.length === 0 ? (
               <p className="py-6 text-center text-sm text-neutral-500">
-                Tidak ada web yang cocok dengan &quot;{search}&quot;.
+                No websites match &quot;{search}&quot;.
               </p>
             ) : (
               <div className="grid grid-cols-[repeat(auto-fill,minmax(min(280px,100%),1fr))] gap-4">

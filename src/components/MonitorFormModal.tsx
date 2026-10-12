@@ -2,11 +2,20 @@
 
 import { useEffect, useState } from "react";
 import type { Monitor } from "@/lib/types";
+import {
+  DEFAULT_RETRIES,
+  DEFAULT_RETRY_INTERVAL_SEC,
+  MAX_RETRIES,
+  MAX_RETRY_INTERVAL_SEC,
+  MIN_RETRY_INTERVAL_SEC,
+} from "@/lib/monitor-rules";
 
 export interface MonitorFormValues {
   name: string;
   url: string;
   intervalSec: number;
+  retries: number;
+  retryIntervalSec: number;
 }
 
 export default function MonitorFormModal({
@@ -21,6 +30,8 @@ export default function MonitorFormModal({
   const [name, setName] = useState(initial?.name ?? "");
   const [url, setUrl] = useState(initial?.url ?? "https://");
   const [intervalSec, setIntervalSec] = useState(initial?.intervalSec ?? 60);
+  const [retries, setRetries] = useState(initial?.retries ?? DEFAULT_RETRIES);
+  const [retryIntervalSec, setRetryIntervalSec] = useState(initial?.retryIntervalSec ?? DEFAULT_RETRY_INTERVAL_SEC);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -36,7 +47,13 @@ export default function MonitorFormModal({
     e.preventDefault();
     setError(null);
     setSaving(true);
-    const result = await onSubmit({ name, url, intervalSec: Number(intervalSec) });
+    const result = await onSubmit({
+      name,
+      url,
+      intervalSec: Number(intervalSec),
+      retries: Number(retries),
+      retryIntervalSec: Number(retryIntervalSec),
+    });
     setSaving(false);
     if (result) setError(result);
   }
@@ -45,16 +62,16 @@ export default function MonitorFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
       <div className="w-full max-w-sm rounded-xl border border-neutral-700 bg-neutral-900 p-4 shadow-xl">
         <h2 className="mb-3 text-sm font-semibold text-neutral-100">
-          {initial ? "Edit Monitor" : "Tambah Monitor"}
+          {initial ? "Edit Monitor" : "Add Monitor"}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-xs text-neutral-400">Nama Web</label>
+            <label className="mb-1 block text-xs text-neutral-400">Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
-              placeholder="Mis. KolabPanel"
+              placeholder="e.g. KolabPanel"
               className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-500"
             />
           </div>
@@ -65,13 +82,13 @@ export default function MonitorFormModal({
               onChange={(e) => setUrl(e.target.value)}
               required
               type="url"
-              placeholder="https://contoh.com"
+              placeholder="https://example.com"
               className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-500"
             />
           </div>
           <div>
             <label className="mb-1 block text-xs text-neutral-400">
-              Heartbeat Interval (detik)
+              Heartbeat interval (seconds)
             </label>
             <input
               value={intervalSec}
@@ -83,7 +100,39 @@ export default function MonitorFormModal({
               className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-500"
             />
             <p className="mt-1 text-[11px] text-neutral-500">
-              Seberapa sering dicek, mis. 60 = tiap 1 menit.
+              How often to check, e.g. 60 = every minute.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="mb-1 block text-xs text-neutral-400">Retries</label>
+              <input
+                value={retries}
+                onChange={(e) => setRetries(Number(e.target.value))}
+                required
+                type="number"
+                min={0}
+                max={MAX_RETRIES}
+                step={1}
+                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-neutral-400">Retry interval (seconds)</label>
+              <input
+                value={retryIntervalSec}
+                onChange={(e) => setRetryIntervalSec(Number(e.target.value))}
+                required
+                type="number"
+                min={MIN_RETRY_INTERVAL_SEC}
+                max={MAX_RETRY_INTERVAL_SEC}
+                step={1}
+                className="w-full rounded-md border border-neutral-700 bg-neutral-800 px-2.5 py-1.5 text-sm text-neutral-100 outline-none focus:border-emerald-500"
+              />
+            </div>
+            <p className="col-span-2 -mt-1 text-[11px] text-neutral-500">
+              After a failed check the monitor turns yellow (retrying) and is re-checked this many times
+              before it is marked DOWN. 0 = mark DOWN right away.
             </p>
           </div>
           {error && <p className="text-xs text-red-400">{error}</p>}
@@ -93,14 +142,14 @@ export default function MonitorFormModal({
               onClick={onClose}
               className="rounded-md px-3 py-1.5 text-sm text-neutral-400 hover:bg-neutral-800"
             >
-              Batal
+              Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
               className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
             >
-              {saving ? "Menyimpan..." : initial ? "Simpan" : "Tambah"}
+              {saving ? "Saving..." : initial ? "Save" : "Add"}
             </button>
           </div>
         </form>

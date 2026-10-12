@@ -44,8 +44,8 @@ export function loadAuthConfig(): AuthConfig {
   saveAuthConfig(cfg);
   if (!given) {
     console.log("================================================================");
-    console.log(` Akun admin awal dibuat -> username: ${username}  password: ${password}`);
-    console.log(" Segera ganti lewat Settings, atau: npm run passwd");
+    console.log(` Initial admin account created -> username: ${username}  password: ${password}`);
+    console.log(" Change it soon in Settings, or run: npm run passwd");
     console.log("================================================================");
   }
   return cfg;
@@ -104,12 +104,12 @@ export function changeCredentialsCore(
 ): { ok: boolean; error?: string } {
   const cfg = loadAuthConfig();
   if (!verifyPassword(currentPassword, cfg.passwordHash)) {
-    return { ok: false, error: "Password saat ini salah" };
+    return { ok: false, error: "Current password is wrong" };
   }
   if (nextUsername && nextUsername.trim()) cfg.username = nextUsername.trim();
   if (nextPassword) {
     if (nextPassword.length < MIN_PASSWORD_LENGTH) {
-      return { ok: false, error: `Password baru minimal ${MIN_PASSWORD_LENGTH} karakter` };
+      return { ok: false, error: `New password must be at least ${MIN_PASSWORD_LENGTH} characters` };
     }
     cfg.passwordHash = hashPassword(nextPassword);
   }

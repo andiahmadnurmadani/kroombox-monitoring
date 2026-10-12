@@ -14,7 +14,7 @@ Self-hosted, real-time monitoring dashboard for **websites**, **Linux servers** 
 
 ## Features
 
-- **Websites** — HTTP(S) checks on your own interval, response time, heartbeat bar, uptime %.
+- **Websites** — HTTP(S) checks on your own interval, response time, heartbeat bar, uptime %. A failed check is retried first (shown in yellow as *RETRYING*, with your own retry count and interval) and only marked *DOWN* when the retries fail too, so a single hiccup doesn't raise an alarm.
 - **Servers** — load average, RAM, root disk usage and uptime over SSH (password or private key). One SSH connection per host is kept open and re-used, so a 1-second refresh stays cheap.
 - **NAS** — the same SSH metrics plus per-disk temperature and SMART status from **Synology DSM**.
 - **Everything is added in the UI** — any number of websites, servers and NAS; edit, pause or delete them; a *Test connection* button checks SSH/DSM before saving.
@@ -47,7 +47,7 @@ The installer:
 4. asks for the login password (leave empty for a random one, which is printed at the end),
 5. installs and starts `kroombox-monitor.service`.
 
-Open `http://<server-ip>:3400`, log in, then use **+ Tambah** to add websites, servers and NAS.
+Open `http://<server-ip>:3400`, log in, then use **+ Add** to add websites, servers and NAS.
 
 Useful options:
 

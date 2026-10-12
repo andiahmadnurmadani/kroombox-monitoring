@@ -40,10 +40,10 @@ export default function AppSettingsCard() {
         body: JSON.stringify({ appName }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) flash(null, data.error ?? "Gagal menyimpan");
-      else flash("Nama aplikasi tersimpan.", null);
+      if (!res.ok) flash(null, data.error ?? "Failed to save");
+      else flash("App name saved.", null);
     } catch {
-      flash(null, "Tidak bisa terhubung ke server");
+      flash(null, "Cannot reach the server");
     } finally {
       setSaving(false);
     }
@@ -58,12 +58,12 @@ export default function AppSettingsCard() {
     const data = await res.json().catch(() => ({}));
     if (fileRef.current) fileRef.current.value = "";
     if (!res.ok) {
-      flash(null, data.error ?? "Gagal mengunggah logo");
+      flash(null, data.error ?? "Failed to upload logo");
       return;
     }
     setHasCustomLogo(true);
     setLogoVersion((v) => v + 1);
-    flash("Logo diperbarui.", null);
+    flash("Logo updated.", null);
   }
 
   async function handleResetLogo() {
@@ -71,19 +71,19 @@ export default function AppSettingsCard() {
     await fetch("/api/app-settings/logo", { method: "DELETE" });
     setHasCustomLogo(false);
     setLogoVersion((v) => v + 1);
-    flash("Logo dikembalikan ke bawaan.", null);
+    flash("Logo reset to default.", null);
   }
 
   return (
     <div className="mb-4 rounded-2xl border border-neutral-800/80 bg-neutral-900/70 p-6 shadow-xl shadow-black/30">
-      <h2 className="mb-1 text-sm font-semibold text-neutral-100">Tampilan</h2>
-      <p className="mb-4 text-xs text-neutral-500">Nama dan logo yang tampil di dashboard, halaman login, dan tab browser.</p>
+      <h2 className="mb-1 text-sm font-semibold text-neutral-100">Appearance</h2>
+      <p className="mb-4 text-xs text-neutral-500">Name and logo shown on the dashboard, the login page and the browser tab.</p>
       {!loaded ? (
-        <p className="text-xs text-neutral-500">Memuat…</p>
+        <p className="text-xs text-neutral-500">Loading…</p>
       ) : (
         <form onSubmit={handleSave} className="space-y-3.5">
           <div>
-            <label className="mb-1 block text-xs font-medium text-neutral-400">Nama aplikasi</label>
+            <label className="mb-1 block text-xs font-medium text-neutral-400">App name</label>
             <div className="flex gap-2">
               <input
                 value={appName}
@@ -97,7 +97,7 @@ export default function AppSettingsCard() {
                 disabled={saving}
                 className="shrink-0 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
               >
-                Simpan
+                Save
               </button>
             </div>
           </div>
@@ -106,7 +106,7 @@ export default function AppSettingsCard() {
             <img src={`/branding/logo?v=${logoVersion}`} alt="" className="h-12 w-12 rounded-lg bg-neutral-950/60 object-contain p-1" />
             <div className="flex flex-wrap gap-2">
               <label className="cursor-pointer rounded-lg border border-neutral-700 px-3 py-1.5 text-xs text-neutral-200 hover:bg-neutral-800">
-                Ganti logo
+                Change logo
                 <input
                   ref={fileRef}
                   type="file"
@@ -117,12 +117,12 @@ export default function AppSettingsCard() {
               </label>
               {hasCustomLogo && (
                 <button type="button" onClick={handleResetLogo} className="rounded-lg px-3 py-1.5 text-xs text-neutral-400 hover:bg-neutral-800">
-                  Pakai logo bawaan
+                  Use default logo
                 </button>
               )}
             </div>
           </div>
-          <p className="text-[11px] text-neutral-500">PNG, JPG, atau WebP, maks. 512 KB. Gambar persegi paling rapi.</p>
+          <p className="text-[11px] text-neutral-500">PNG, JPG or WebP, max. 512 KB. Square images look best.</p>
           {error && <p className="text-xs text-red-400">{error}</p>}
           {success && <p className="text-xs text-emerald-400">{success}</p>}
         </form>

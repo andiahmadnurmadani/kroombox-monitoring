@@ -10,19 +10,19 @@ export async function POST(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const name = (await params).name;
-  if (!isSoundName(name)) return NextResponse.json({ error: "Jenis suara tidak dikenal" }, { status: 404 });
+  if (!isSoundName(name)) return NextResponse.json({ error: "Unknown sound type" }, { status: 404 });
   const form = await req.formData().catch(() => null);
   const file = form?.get("sound");
   if (!file || typeof file === "string") {
-    return NextResponse.json({ error: "Pilih file audio" }, { status: 400 });
+    return NextResponse.json({ error: "Choose an audio file" }, { status: 400 });
   }
   if (file.size > MAX_SOUND_BYTES) {
-    return NextResponse.json({ error: "File suara maksimal 1 MB" }, { status: 400 });
+    return NextResponse.json({ error: "Sound file must be 1 MB or smaller" }, { status: 400 });
   }
   const buf = Buffer.from(await file.arrayBuffer());
   const ext = sniffSound(buf);
   if (!ext) {
-    return NextResponse.json({ error: "Format harus MP3, WAV, OGG, atau M4A" }, { status: 400 });
+    return NextResponse.json({ error: "Format must be MP3, WAV, OGG or M4A" }, { status: 400 });
   }
   saveSound(name, buf, ext);
   return NextResponse.json({ ok: true });
@@ -34,7 +34,7 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const name = (await params).name;
-  if (!isSoundName(name)) return NextResponse.json({ error: "Jenis suara tidak dikenal" }, { status: 404 });
+  if (!isSoundName(name)) return NextResponse.json({ error: "Unknown sound type" }, { status: 404 });
   removeSound(name);
   return NextResponse.json({ ok: true });
 }

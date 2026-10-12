@@ -5,20 +5,22 @@ import HeartbeatBar from "./HeartbeatBar";
 import CardActions from "./CardActions";
 
 function timeAgo(ts: number | null): string {
-  if (!ts) return "belum pernah dicek";
+  if (!ts) return "never checked";
   const diff = Math.max(0, Date.now() - ts);
   const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}d lalu`;
+  if (s < 60) return `${s}s ago`;
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m lalu`;
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  return `${h}j lalu`;
+  return `${h}h ago`;
 }
 
+// checks that failed but were still being retried are left out: they never became an outage
 function uptimePercent(history: Monitor["history"]): number | null {
-  if (history.length === 0) return null;
-  const ok = history.filter((h) => h.ok).length;
-  return Math.round((ok / history.length) * 100);
+  const counted = history.filter((h) => !h.retry);
+  if (counted.length === 0) return null;
+  const ok = counted.filter((h) => h.ok).length;
+  return Math.round((ok / counted.length) * 100);
 }
 
 const STATUS_META = {
@@ -33,6 +35,12 @@ const STATUS_META = {
     badge: "bg-red-500/10 text-red-400 ring-1 ring-inset ring-red-500/30",
     dot: "bg-red-500 shadow-[0_0_8px_2px_rgba(239,68,68,0.55)] animate-pulse",
     accent: "bg-red-500",
+  },
+  retrying: {
+    label: "RETRYING",
+    badge: "bg-amber-500/10 text-amber-300 ring-1 ring-inset ring-amber-500/30",
+    dot: "bg-amber-400 shadow-[0_0_8px_2px_rgba(251,191,36,0.55)] animate-pulse",
+    accent: "bg-amber-400",
   },
   pending: {
     label: "PENDING",
@@ -83,16 +91,17 @@ export default function MonitorCard({
       <div className="mt-3 flex items-center justify-between">
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${meta.badge}`}
-          title={monitor.status === "down" ? monitor.lastError ?? undefined : undefined}
+          title={monitor.status === "down" || monitor.status === "retrying" ? monitor.lastError ?? undefined : undefined}
         >
           {meta.label}
+          {monitor.status === "retrying" && ` ${monitor.failCount}/${monitor.retries}`}
         </span>
         <div className="flex items-center gap-3 text-xs text-neutral-400">
           <span title="Response time">
             {monitor.lastResponseTimeMs !== null ? `${monitor.lastResponseTimeMs}ms` : "—"}
           </span>
           {uptime !== null && <span title="Uptime">{uptime}%</span>}
-          <span title="Terakhir dicek">{timeAgo(monitor.lastCheckedAt)}</span>
+          <span title="Last checked">{timeAgo(monitor.lastCheckedAt)}</span>
         </div>
       </div>
     </div>

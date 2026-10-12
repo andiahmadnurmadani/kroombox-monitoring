@@ -64,13 +64,13 @@ export default function HostCard({
         <h3 className="truncate text-xl font-semibold text-neutral-100">{host.label}</h3>
         {isNas && !paused && (
           <span className="truncate text-sm text-neutral-500">
-            {host.reachable ? "online" : host.error ?? host.dsmError ?? "tidak terjangkau"}
+            {host.reachable ? "online" : host.error ?? host.dsmError ?? "unreachable"}
           </span>
         )}
       </div>
 
       {paused ? (
-        <p className="text-sm text-neutral-500">Pemantauan dijeda</p>
+        <p className="text-sm text-neutral-500">Monitoring paused</p>
       ) : m ? (
         <div className={`grid gap-2 ${isNas ? "grid-cols-3" : "grid-cols-2"}`}>
           <MetricTile
@@ -100,7 +100,7 @@ export default function HostCard({
       ) : (
         !isNas && (
           <p className="truncate text-sm text-red-300/80" title={host.error ?? undefined}>
-            {host.error ?? (host.lastCheckedAt ? "Tidak terjangkau" : "Menyambung…")}
+            {host.error ?? (host.lastCheckedAt ? "Unreachable" : "Connecting…")}
           </p>
         )
       )}
@@ -114,7 +114,7 @@ export default function HostCard({
       )}
       {!paused && host.reachable && host.dsmError && (
         <p className="truncate text-xs text-amber-300/80" title={host.dsmError}>
-          Suhu disk: {host.dsmError}
+          Disk temperature: {host.dsmError}
         </p>
       )}
     </div>

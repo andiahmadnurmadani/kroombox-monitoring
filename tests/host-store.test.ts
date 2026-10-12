@@ -8,7 +8,7 @@ import type { HostConfig } from "../src/lib/host-types";
 
 const base = { kind: "server", label: "Web 1", host: "10.0.0.5", username: "ops", password: "rahasia", intervalSec: 5 };
 
-test("server baru valid → config lengkap dengan default", () => {
+test("valid new server → full config with defaults", () => {
   const r = parseHostInput(base);
   assert.ok(r.ok);
   if (!r.ok) return;
@@ -19,16 +19,16 @@ test("server baru valid → config lengkap dengan default", () => {
   assert.match(r.config.id, /^h_[0-9a-f]{8}$/);
 });
 
-test("input tidak valid ditolak dengan pesan jelas", () => {
+test("invalid input is rejected with a clear message", () => {
   const cases: [Record<string, unknown>, RegExp][] = [
-    [{ ...base, label: "" }, /Nama/],
+    [{ ...base, label: "" }, /Name/],
     [{ ...base, host: "bad host;rm" }, /host/i],
-    [{ ...base, port: 70000 }, /Port/],
-    [{ ...base, username: "a b" }, /Username/],
+    [{ ...base, port: 70000 }, /port/i],
+    [{ ...base, username: "a b" }, /username/i],
     [{ ...base, intervalSec: 0 }, /Interval/],
-    [{ ...base, password: "" }, /Password SSH/],
-    [{ ...base, authMethod: "key", privateKey: "bukan key" }, /private key/i],
-    [{ ...base, kind: "router" }, /Jenis/],
+    [{ ...base, password: "" }, /SSH password/],
+    [{ ...base, authMethod: "key", privateKey: "not a key" }, /private key/i],
+    [{ ...base, kind: "router" }, /host type/],
   ];
   for (const [input, err] of cases) {
     const r = parseHostInput(input);
@@ -37,15 +37,15 @@ test("input tidak valid ditolak dengan pesan jelas", () => {
   }
 });
 
-test("edit dengan secret kosong mempertahankan secret lama", () => {
+test("editing with empty secrets keeps the old secrets", () => {
   const first = parseHostInput({ ...base, kind: "nas", dsm: { enabled: true, username: "dsmadmin", password: "dsm-pass" } });
   assert.ok(first.ok);
   if (!first.ok) return;
-  const edited = parseHostInput({ label: "Ganti nama", password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+  const edited = parseHostInput({ label: "Renamed", password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
   assert.ok(edited.ok);
   if (!edited.ok) return;
   assert.equal(edited.config.id, first.config.id);
-  assert.equal(edited.config.label, "Ganti nama");
+  assert.equal(edited.config.label, "Renamed");
   assert.deepEqual(edited.config.auth, { method: "password", password: "rahasia" });
   assert.equal(edited.config.dsm?.password, "dsm-pass");
   // kembali ke "akun DSM = akun SSH": password DSM lama dibuang
@@ -53,7 +53,7 @@ test("edit dengan secret kosong mempertahankan secret lama", () => {
   assert.ok(same.ok && same.config.dsm?.password === undefined && same.config.dsm?.username === undefined);
 });
 
-test("private key diterima, passphrase lama dipakai bila key tidak diganti", () => {
+test("private key accepted, old passphrase kept when the key is unchanged", () => {
   const key = "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n-----END OPENSSH PRIVATE KEY-----";
   const r = parseHostInput({ ...base, authMethod: "key", privateKey: key, passphrase: "pp" });
   assert.ok(r.ok);
@@ -65,7 +65,7 @@ test("private key diterima, passphrase lama dipakai bila key tidak diganti", () 
   if (again.config.auth.method === "key") assert.equal(again.config.auth.passphrase, "pp");
 });
 
-test("toView tidak pernah membawa password atau private key", () => {
+test("toView never exposes the password or private key", () => {
   const r = parseHostInput({ ...base, kind: "nas", dsm: { enabled: true, username: "u", password: "dsm-secret" } });
   assert.ok(r.ok);
   if (!r.ok) return;
@@ -75,7 +75,7 @@ test("toView tidak pernah membawa password atau private key", () => {
   assert.equal(toView(r.config).dsm?.hasPassword, true);
 });
 
-test("konfigurasi lama .env.local (NAS_* + SERVERS_JSON) diimpor apa adanya", () => {
+test("old .env.local config (NAS_* + SERVERS_JSON) is imported as-is", () => {
   const hosts = hostsFromLegacyEnv({
     NAS_HOST: "100.1.1.1",
     NAS_PORT: "5001",
@@ -88,7 +88,7 @@ test("konfigurasi lama .env.local (NAS_* + SERVERS_JSON) diimpor apa adanya", ()
     SERVERS_JSON: JSON.stringify([
       { id: "web", label: "Web", host: "100.1.1.2", username: "a", password: "b" },
       { id: "db", label: "DB", host: "100.1.1.3", port: 2222, username: "c", password: "d" },
-      { id: "rusak", label: "Tanpa password", host: "100.1.1.4", username: "e" },
+      { id: "rusak", label: "No password", host: "100.1.1.4", username: "e" },
     ]),
   });
   assert.deepEqual(hosts.map((h) => h.id), ["nas", "web", "db"]);
@@ -101,12 +101,12 @@ test("konfigurasi lama .env.local (NAS_* + SERVERS_JSON) diimpor apa adanya", ()
   assert.equal(hosts[1].intervalSec, 1);
 });
 
-test("tanpa konfigurasi lama → daftar kosong", () => {
+test("no old config → empty list", () => {
   assert.deepEqual(hostsFromLegacyEnv({}), []);
   assert.deepEqual(hostsFromLegacyEnv({ SERVERS_JSON: "{bukan json" }), []);
 });
 
-test("hosts.json ditulis dengan izin 0600 dan memicu listener", async () => {
+test("hosts.json is written with mode 0600 and triggers listeners", async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "km-test-"));
   process.env.DATA_DIR = dir;
   delete global.__hostStore;
@@ -127,22 +127,22 @@ test("hosts.json ditulis dengan izin 0600 dan memicu listener", async () => {
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
-test("password tersimpan tidak dipakai ulang bila tujuan koneksi diganti", () => {
+test("stored password is not reused when the connection target changes", () => {
   const first = parseHostInput({ ...base, kind: "nas", dsm: { enabled: true, username: "dsmadmin", password: "dsm-pass" } });
   assert.ok(first.ok);
   if (!first.ok) return;
   for (const change of [{ host: "203.0.113.66" }, { port: 2222 }, { username: "lain" }]) {
     const r = parseHostInput({ ...change, password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
     assert.equal(r.ok, false, JSON.stringify(change));
-    if (!r.ok) assert.match(r.error, /masukkan ulang password SSH/);
+    if (!r.ok) assert.match(r.error, /enter the SSH password again/);
   }
   // SSH password diketik ulang, tapi DSM ikut pindah host → password DSM juga wajib diketik ulang
-  const moved = parseHostInput({ host: "203.0.113.66", password: "baru", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+  const moved = parseHostInput({ host: "203.0.113.66", password: "new", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
   assert.equal(moved.ok, false);
-  if (!moved.ok) assert.match(moved.error, /password DSM/);
+  if (!moved.ok) assert.match(moved.error, /DSM password/);
   const dsmPort = parseHostInput({ password: "", dsm: { enabled: true, username: "dsmadmin", port: 5000, https: false, password: "" } }, first.config);
   assert.equal(dsmPort.ok, false);
   // tujuan sama → tetap boleh tanpa mengetik ulang
-  const same = parseHostInput({ label: "Nama baru", password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
+  const same = parseHostInput({ label: "New name", password: "", dsm: { enabled: true, username: "dsmadmin", password: "" } }, first.config);
   assert.ok(same.ok);
 });

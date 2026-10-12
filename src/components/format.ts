@@ -17,11 +17,11 @@ export function formatUptime(sec: number): string {
   const days = Math.floor(sec / 86400);
   const hours = Math.floor((sec % 86400) / 3600);
   const minutes = Math.floor((sec % 3600) / 60);
-  if (days > 0) return `${days}d ${hours}j`;
-  if (hours > 0) return `${hours}j ${minutes}m`;
+  if (days > 0) return `${days}d ${hours}h`;
+  if (hours > 0) return `${hours}h ${minutes}m`;
   return `${minutes}m`;
 }
 
 export function loadTitle(l: { load1: number; load5: number; load15: number; cores: number | null }) {
-  return `1m ${l.load1.toFixed(2)} · 5m ${l.load5.toFixed(2)} · 15m ${l.load15.toFixed(2)}${l.cores ? ` (${l.cores} core)` : ""}`;
+  return `1m ${l.load1.toFixed(2)} · 5m ${l.load5.toFixed(2)} · 15m ${l.load15.toFixed(2)}${l.cores ? ` (${l.cores} ${l.cores === 1 ? "core" : "cores"})` : ""}`;
 }

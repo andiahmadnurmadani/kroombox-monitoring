@@ -78,32 +78,32 @@ export type ParseResult = { ok: true; config: HostConfig } | { ok: false; error:
  */
 export function parseHostInput(body: Record<string, unknown>, existing?: HostConfig): ParseResult {
   const kind = (body.kind ?? existing?.kind ?? "server") as HostKind;
-  if (kind !== "server" && kind !== "nas") return { ok: false, error: "Jenis host tidak dikenal" };
+  if (kind !== "server" && kind !== "nas") return { ok: false, error: "Unknown host type" };
 
   const label = str(body.label ?? existing?.label);
-  if (!label) return { ok: false, error: "Nama wajib diisi" };
-  if (label.length > 60) return { ok: false, error: "Nama maksimal 60 karakter" };
+  if (!label) return { ok: false, error: "Name is required" };
+  if (label.length > 60) return { ok: false, error: "Name must be 60 characters or fewer" };
 
   const host = str(body.host ?? existing?.host);
   if (!host || host.length > 253 || !HOST_RE.test(host)) {
-    return { ok: false, error: "Alamat host tidak valid (IP atau hostname)" };
+    return { ok: false, error: "Invalid host address (IP or hostname)" };
   }
 
   const port = int(body.port, existing?.port ?? 22);
-  if (!(port >= 1 && port <= 65535)) return { ok: false, error: "Port SSH harus 1-65535" };
+  if (!(port >= 1 && port <= 65535)) return { ok: false, error: "SSH port must be 1-65535" };
 
   const username = str(body.username ?? existing?.username);
   if (!username || username.length > 64 || /\s/.test(username)) {
-    return { ok: false, error: "Username SSH tidak valid" };
+    return { ok: false, error: "Invalid SSH username" };
   }
 
   const intervalSec = int(body.intervalSec, existing?.intervalSec ?? 5);
   if (!(intervalSec >= LIMITS.minIntervalSec && intervalSec <= LIMITS.maxIntervalSec)) {
-    return { ok: false, error: `Interval harus ${LIMITS.minIntervalSec}-${LIMITS.maxIntervalSec} detik` };
+    return { ok: false, error: `Interval must be ${LIMITS.minIntervalSec}-${LIMITS.maxIntervalSec} seconds` };
   }
 
   // A stored password is only reused for the very same destination: otherwise
-  // pointing an existing host at another machine (and pressing "Test koneksi")
+  // pointing an existing host at another machine (and pressing "Test connection")
   // would hand the saved password to whoever runs that machine.
   const sameSshTarget =
     !!existing && host === existing.host && port === existing.port && username === existing.username;
@@ -118,8 +118,8 @@ export function parseHostInput(body: Record<string, unknown>, existing?: HostCon
       return {
         ok: false,
         error: existing?.auth.method === "password" && !sameSshTarget
-          ? "Host, port, atau username berubah: masukkan ulang password SSH"
-          : "Password SSH wajib diisi",
+          ? "Host, port or username changed: enter the SSH password again"
+          : "SSH password is required",
       };
     }
     auth = { method: "password", password };
@@ -127,16 +127,16 @@ export function parseHostInput(body: Record<string, unknown>, existing?: HostCon
     const given = typeof body.privateKey === "string" ? body.privateKey.trim() : "";
     const kept = existing?.auth.method === "key" ? existing.auth.privateKey : "";
     const privateKey = given ? `${given}\n` : kept;
-    if (!privateKey) return { ok: false, error: "Private key SSH wajib diisi" };
+    if (!privateKey) return { ok: false, error: "SSH private key is required" };
     if (!/-----BEGIN [A-Z ]*PRIVATE KEY-----/.test(privateKey)) {
-      return { ok: false, error: "Format private key tidak dikenali (harus PEM/OpenSSH)" };
+      return { ok: false, error: "Unrecognized private key format (must be PEM/OpenSSH)" };
     }
     const givenPass = typeof body.passphrase === "string" ? body.passphrase : "";
     const keptPass = existing?.auth.method === "key" && given === "" ? existing.auth.passphrase : undefined;
     const passphrase = givenPass || keptPass || undefined;
     auth = { method: "key", privateKey, ...(passphrase ? { passphrase } : {}) };
   } else {
-    return { ok: false, error: "Metode autentikasi tidak dikenal" };
+    return { ok: false, error: "Unknown authentication method" };
   }
 
   let dsm: DsmConfig | undefined;
@@ -145,10 +145,10 @@ export function parseHostInput(body: Record<string, unknown>, existing?: HostCon
     const prev = existing?.dsm;
     const enabled = bool(raw.enabled, prev?.enabled ?? false);
     const dsmPort = int(raw.port, prev?.port ?? 5001);
-    if (!(dsmPort >= 1 && dsmPort <= 65535)) return { ok: false, error: "Port DSM harus 1-65535" };
+    if (!(dsmPort >= 1 && dsmPort <= 65535)) return { ok: false, error: "DSM port must be 1-65535" };
     const dsmInterval = int(raw.intervalSec, prev?.intervalSec ?? 15);
     if (!(dsmInterval >= LIMITS.minDsmIntervalSec && dsmInterval <= LIMITS.maxIntervalSec)) {
-      return { ok: false, error: `Interval DSM harus ${LIMITS.minDsmIntervalSec}-${LIMITS.maxIntervalSec} detik` };
+      return { ok: false, error: `DSM interval must be ${LIMITS.minDsmIntervalSec}-${LIMITS.maxIntervalSec} seconds` };
     }
     const dsmUser = raw.username !== undefined ? str(raw.username) : prev?.username ?? "";
     const dsmPassGiven = typeof raw.password === "string" ? raw.password : "";
@@ -170,8 +170,8 @@ export function parseHostInput(body: Record<string, unknown>, existing?: HostCon
       return {
         ok: false,
         error: prev?.password && !sameDsmTarget
-          ? "Alamat, port, atau akun DSM berubah: masukkan ulang password DSM"
-          : "Password DSM wajib diisi bila akun DSM berbeda dari SSH",
+          ? "DSM address, port or account changed: enter the DSM password again"
+          : "DSM password is required when the DSM account differs from SSH",
       };
     }
   }
@@ -240,7 +240,7 @@ export function hostsFromLegacyEnv(env: Record<string, string | undefined>): Hos
     const parsed = JSON.parse(env.SERVERS_JSON ?? "[]");
     if (Array.isArray(parsed)) servers = parsed;
   } catch {
-    console.error("SERVERS_JSON lama tidak valid JSON, tidak diimpor");
+    console.error("Old SERVERS_JSON is not valid JSON, not imported");
   }
   const intervalSec = Math.max(1, Math.round(Number(env.SERVERS_INTERVAL_MS ?? "1000") / 1000) || 1);
   servers.forEach((s, i) => {
@@ -274,7 +274,7 @@ class HostStore {
     } else {
       this.hosts = hostsFromLegacyEnv(process.env);
       if (this.hosts.length > 0) {
-        console.log(`hosts.json dibuat dari konfigurasi lama .env.local (${this.hosts.length} host)`);
+        console.log(`hosts.json created from the old .env.local config (${this.hosts.length} hosts)`);
       }
       this.save();
     }
@@ -303,7 +303,7 @@ class HostStore {
   }
 
   add(config: HostConfig): HostConfig | string {
-    if (this.hosts.length >= LIMITS.maxHosts) return `Maksimal ${LIMITS.maxHosts} host`;
+    if (this.hosts.length >= LIMITS.maxHosts) return `At most ${LIMITS.maxHosts} hosts`;
     this.hosts.push(config);
     this.changed();
     return config;

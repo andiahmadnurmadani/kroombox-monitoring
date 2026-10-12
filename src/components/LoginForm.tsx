@@ -22,14 +22,14 @@ export default function LoginForm({ appName }: { appName: string }) {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setError(data.error ?? "Gagal masuk");
+        setError(data.error ?? "Sign-in failed");
         setLoading(false);
         return;
       }
       router.replace("/");
       router.refresh();
     } catch {
-      setError("Tidak bisa terhubung ke server");
+      setError("Cannot reach the server");
       setLoading(false);
     }
   }
@@ -42,7 +42,7 @@ export default function LoginForm({ appName }: { appName: string }) {
           <img src="/branding/logo" alt="" className="h-10 w-10 object-contain" />
           <div>
             <h1 className="text-sm font-semibold text-neutral-100">{appName}</h1>
-            <p className="text-xs text-neutral-500">Masuk untuk lanjut ke dashboard</p>
+            <p className="text-xs text-neutral-500">Sign in to continue to the dashboard</p>
           </div>
         </div>
 
@@ -73,12 +73,12 @@ export default function LoginForm({ appName }: { appName: string }) {
             disabled={loading}
             className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
           >
-            {loading ? "Memeriksa..." : "Masuk"}
+            {loading ? "Checking..." : "Sign in"}
           </button>
         </form>
 
         <p className="mt-5 text-center text-[11px] text-neutral-600">
-          Lupa password? Jalankan <code className="text-neutral-500">npm run passwd</code> di server.
+          Forgot your password? Run <code className="text-neutral-500">npm run passwd</code> on the server.
         </p>
       </div>
     </div>

@@ -27,7 +27,7 @@ case "${1:-help}" in
   update)
     need_root "$@"
     SRC=$(sed -n 's/^SOURCE_DIR=//p' "$CONF_DIR/install.conf" 2>/dev/null || true)
-    [ -d "$SRC/.git" ] || { echo "Folder sumber ($SRC) tidak ditemukan / bukan git clone." >&2; exit 1; }
+    [ -d "$SRC/.git" ] || { echo "Source folder ($SRC) not found / not a git clone." >&2; exit 1; }
     git -C "$SRC" pull --ff-only
     exec "$SRC/scripts/install.sh"
     ;;
@@ -39,13 +39,13 @@ case "${1:-help}" in
   version) node -p "require('$INSTALL_DIR/package.json').version" ;;
   *)
     cat <<USAGE
-Pemakaian: $APP <perintah>
-  status            status layanan systemd
-  logs [N]          ikuti log (journalctl), N baris terakhir
+Usage: $APP <command>
+  status            systemd service status
+  logs [N]          follow the logs (journalctl), last N lines
   start|stop|restart
-  passwd            ganti/reset username & password login dashboard
-  update            git pull di folder sumber lalu pasang ulang (data tetap)
-  uninstall [--purge]  hapus layanan (--purge: hapus juga data & konfigurasi)
+  passwd            change/reset the dashboard login username & password
+  update            git pull in the source folder, then reinstall (data is kept)
+  uninstall [--purge]  remove the service (--purge: also remove data & config)
   version
 USAGE
     ;;

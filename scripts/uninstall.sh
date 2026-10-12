@@ -21,12 +21,12 @@ systemctl disable --now "$APP" 2>/dev/null || true
 rm -f "/etc/systemd/system/$APP.service" "/usr/local/bin/$APP"
 systemctl daemon-reload
 rm -rf "$INSTALL_DIR"
-echo "Layanan dan aplikasi di $INSTALL_DIR dihapus."
+echo "Service and application in $INSTALL_DIR removed."
 
 if [ $PURGE = 1 ]; then
   rm -rf "$DATA_DIR" "$CONF_DIR"
   userdel "$SERVICE_USER" 2>/dev/null || true
-  echo "Data ($DATA_DIR), konfigurasi ($CONF_DIR) dan user $SERVICE_USER ikut dihapus."
+  echo "Data ($DATA_DIR), config ($CONF_DIR) and user $SERVICE_USER removed too."
 else
-  echo "Data tetap di $DATA_DIR dan konfigurasi di $CONF_DIR (pakai --purge untuk menghapusnya)."
+  echo "Data kept in $DATA_DIR and config in $CONF_DIR (use --purge to remove them)."
 fi

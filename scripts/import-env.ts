@@ -27,7 +27,7 @@ function parseDotenv(text: string): Record<string, string> {
 
 const file = process.argv[2];
 if (!file || !fs.existsSync(file)) {
-  console.error("Pemakaian: tsx scripts/import-env.ts <file .env lama>");
+  console.error("Usage: tsx scripts/import-env.ts <old .env file>");
   process.exit(1);
 }
 const imported = hostsFromLegacyEnv(parseDotenv(fs.readFileSync(file, "utf-8")));
@@ -36,4 +36,4 @@ const current = readJson<{ version: 1; hosts: HostConfig[] }>(target) ?? { versi
 const known = new Set(current.hosts.map((h) => h.id));
 const added = imported.filter((h) => !known.has(h.id));
 writeJson(target, { version: 1, hosts: [...current.hosts, ...added] }, 0o600);
-console.log(`${added.length} host diimpor ke ${target} (${imported.length - added.length} sudah ada, dilewati)`);
+console.log(`${added.length} hosts imported into ${target} (${imported.length - added.length} already present, skipped)`);

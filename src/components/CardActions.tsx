@@ -19,8 +19,8 @@ export default function CardActions({ onEdit, onDelete }: { onEdit: () => void; 
       <button
         onClick={onDelete}
         className="rounded bg-neutral-900/80 p-1.5 text-neutral-400 hover:bg-red-900/60 hover:text-red-200"
-        title="Hapus"
-        aria-label="Hapus"
+        title="Delete"
+        aria-label="Delete"
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M3 6h18" />

@@ -40,12 +40,12 @@ export default function SoundSettingsCard() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Gagal menyimpan");
+        setError(data.error ?? "Failed to save");
         return;
       }
-      setSuccess("Jadwal notifikasi suara tersimpan.");
+      setSuccess("Sound notification schedule saved.");
     } catch {
-      setError("Tidak bisa terhubung ke server");
+      setError("Cannot reach the server");
     } finally {
       setSaving(false);
     }
@@ -55,18 +55,18 @@ export default function SoundSettingsCard() {
 
   return (
     <div className="mt-4 rounded-2xl border border-neutral-800/80 bg-neutral-900/70 p-6 shadow-xl shadow-black/30">
-      <h2 className="mb-1 text-sm font-semibold text-neutral-100">Jadwal Notifikasi Suara</h2>
+      <h2 className="mb-1 text-sm font-semibold text-neutral-100">Sound Notification Schedule</h2>
       <p className="mb-4 text-xs text-neutral-500">
-        Atur jam berapa saja suara notifikasi (website/server down atau pulih) boleh berbunyi — di luar jam
-        ini otomatis dibisukan, tanpa perlu dimatikan manual tiap kali.
+        Choose the hours when notification sounds (website/server down or recovered) may play — outside
+        these hours they are muted automatically, no need to switch them off by hand.
       </p>
 
       {!loaded ? (
-        <p className="text-xs text-neutral-500">Memuat...</p>
+        <p className="text-xs text-neutral-500">Loading...</p>
       ) : (
         <form onSubmit={handleSave} className="space-y-3.5">
           <label className="flex items-center justify-between rounded-lg border border-neutral-700 bg-neutral-800/50 px-3 py-2.5">
-            <span className="text-sm text-neutral-200">Aktifkan notifikasi suara</span>
+            <span className="text-sm text-neutral-200">Enable sound notifications</span>
             <input
               type="checkbox"
               checked={settings.enabled}
@@ -77,7 +77,7 @@ export default function SoundSettingsCard() {
 
           <div className={`grid grid-cols-2 gap-3 ${!settings.enabled ? "opacity-50" : ""}`}>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-400">Mulai</label>
+              <label className="mb-1 block text-xs font-medium text-neutral-400">Start</label>
               <input
                 type="time"
                 value={settings.startTime}
@@ -87,7 +87,7 @@ export default function SoundSettingsCard() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-neutral-400">Selesai</label>
+              <label className="mb-1 block text-xs font-medium text-neutral-400">End</label>
               <input
                 type="time"
                 value={settings.endTime}
@@ -100,8 +100,8 @@ export default function SoundSettingsCard() {
 
           {settings.enabled && isOvernight && (
             <p className="text-[11px] text-neutral-500">
-              Jam selesai lebih kecil dari jam mulai → dianggap jadwal lewat tengah malam (mis.
-              22:00 → 06:00 artinya aktif malam sampai pagi).
+              An end time earlier than the start time means the schedule crosses midnight (e.g.
+              22:00 → 06:00 means active from night until morning).
             </p>
           )}
 
@@ -113,7 +113,7 @@ export default function SoundSettingsCard() {
             disabled={saving}
             className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
           >
-            {saving ? "Menyimpan..." : "Simpan Jadwal"}
+            {saving ? "Saving..." : "Save Schedule"}
           </button>
         </form>
       )}

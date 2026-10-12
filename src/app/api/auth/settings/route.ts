@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
 
   const result = await changeCredentials(currentPassword, newUsername, newPassword);
   if (!result.ok) {
-    return NextResponse.json({ error: result.error ?? "Gagal menyimpan" }, { status: 400 });
+    return NextResponse.json({ error: result.error ?? "Failed to save" }, { status: 400 });
   }
   return NextResponse.json({ ok: true });
 }

@@ -6,7 +6,7 @@ import { dsmTarget } from "@/lib/infra-monitor";
 import { sshProbe } from "@/lib/persistent-ssh-poller";
 import { PROC_METRICS_COMMAND, parseProcMetrics } from "@/lib/proc-metrics";
 
-/** "Test koneksi" in the host form: one SSH login + metrics read (and one DSM query
+/** "Test connection" in the host form: one SSH login + metrics read (and one DSM query
  * for a NAS) with the values currently in the form, before anything is saved. */
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticated())) {
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Body harus JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
   // editing: blank secrets in the form mean "use the stored ones"
   const existing = typeof body.id === "string" ? hostStore().get(body.id) : undefined;

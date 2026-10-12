@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const appName = typeof body.appName === "string" ? body.appName.trim() : "";
   if (!appName || appName.length > MAX_APP_NAME) {
-    return NextResponse.json({ error: `Nama aplikasi wajib diisi (maks. ${MAX_APP_NAME} karakter)` }, { status: 400 });
+    return NextResponse.json({ error: `App name is required (max. ${MAX_APP_NAME} characters)` }, { status: 400 });
   }
   saveAppSettings({ appName });
   return NextResponse.json({ ok: true, settings: { appName } });

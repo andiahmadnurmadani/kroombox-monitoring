@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   const enabled = typeof body.enabled === "boolean" ? body.enabled : true;
 
   if (!isValidTime(body.startTime) || !isValidTime(body.endTime)) {
-    return NextResponse.json({ error: "Format jam tidak valid (HH:MM)" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid time format (HH:MM)" }, { status: 400 });
   }
 
   const settings = { enabled, startTime: body.startTime, endTime: body.endTime };

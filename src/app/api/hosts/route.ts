@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   }
   const body = await req.json().catch(() => null);
   if (!body || typeof body !== "object") {
-    return NextResponse.json({ error: "Body harus JSON" }, { status: 400 });
+    return NextResponse.json({ error: "Body must be JSON" }, { status: 400 });
   }
   const parsed = parseHostInput(body);
   if (!parsed.ok) return NextResponse.json({ error: parsed.error }, { status: 400 });

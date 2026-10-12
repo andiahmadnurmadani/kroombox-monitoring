@@ -41,12 +41,14 @@ function scheduleNext(id: string) {
   if (!monitor) return;
   const existing = timers.get(id);
   if (existing) clearTimeout(existing);
+  // while retrying, re-check on the (usually shorter) retry interval so an outage is confirmed quickly
+  const delaySec = monitor.status === "retrying" ? monitor.retryIntervalSec : monitor.intervalSec;
   const t = setTimeout(async () => {
     const m = store.get(id);
     if (!m) return;
     await checkOnce(m);
     scheduleNext(id);
-  }, monitor.intervalSec * 1000);
+  }, delaySec * 1000);
   timers.set(id, t);
 }
 

@@ -22,11 +22,11 @@ interface DsmResponse<T = Record<string, unknown>> {
 
 // https://global.download.synology.com/download/Document/Software/DeveloperGuide/Os/DSM/All/enu/DSM_Login_Web_API_Guide_enu.pdf
 const LOGIN_ERRORS: Record<number, string> = {
-  400: "akun atau password DSM salah",
-  401: "akun DSM dinonaktifkan",
-  402: "izin akun DSM ditolak",
-  403: "DSM meminta kode 2FA (pakai akun tanpa 2FA)",
-  407: "IP diblokir oleh AutoBlock DSM",
+  400: "wrong DSM account or password",
+  401: "DSM account is disabled",
+  402: "DSM account permission denied",
+  403: "DSM asks for a 2FA code (use an account without 2FA)",
+  407: "IP blocked by DSM AutoBlock",
 };
 
 function dsmRequest<T = Record<string, unknown>>(
@@ -54,12 +54,12 @@ function dsmRequest<T = Record<string, unknown>>(
           try {
             resolve(JSON.parse(body));
           } catch {
-            reject(new Error("Respons DSM bukan JSON (port/protokol salah?)"));
+            reject(new Error("DSM response is not JSON (wrong port/protocol?)"));
           }
         });
       }
     );
-    req.on("timeout", () => req.destroy(new Error("Koneksi ke DSM timeout")));
+    req.on("timeout", () => req.destroy(new Error("Connection to DSM timed out")));
     req.on("error", reject);
     req.end();
   });
@@ -79,7 +79,7 @@ export async function fetchDsmDisks(target: DsmTarget): Promise<{ disks: DiskInf
     });
     if (!loginRes.success || !loginRes.data?.sid) {
       const code = loginRes.error?.code;
-      return { disks: null, error: `Login DSM gagal: ${(code && LOGIN_ERRORS[code]) || `kode ${code ?? "?"}`}` };
+      return { disks: null, error: `DSM login failed: ${(code && LOGIN_ERRORS[code]) || `code ${code ?? "?"}`}` };
     }
     sid = loginRes.data.sid;
 
@@ -90,7 +90,7 @@ export async function fetchDsmDisks(target: DsmTarget): Promise<{ disks: DiskInf
       _sid: sid,
     });
     if (!storageRes.success) {
-      return { disks: null, error: `Gagal baca info storage DSM (kode ${storageRes.error?.code ?? "?"}, akun harus admin)` };
+      return { disks: null, error: `Failed to read DSM storage info (code ${storageRes.error?.code ?? "?"}, the account must be an admin)` };
     }
 
     const disks: DiskInfo[] = (storageRes.data?.disks ?? []).map((d) => ({
@@ -104,8 +104,8 @@ export async function fetchDsmDisks(target: DsmTarget): Promise<{ disks: DiskInf
     return { disks, error: null };
   } catch (err) {
     const e = err as { code?: string; message?: string };
-    if (e.code === "ECONNREFUSED") return { disks: null, error: "Port DSM menolak koneksi" };
-    if (e.code === "EPROTO") return { disks: null, error: "Protokol DSM salah (coba ubah HTTPS/HTTP)" };
+    if (e.code === "ECONNREFUSED") return { disks: null, error: "DSM port refused the connection" };
+    if (e.code === "EPROTO") return { disks: null, error: "Wrong DSM protocol (try switching HTTPS/HTTP)" };
     return { disks: null, error: e.message ?? String(err) };
   } finally {
     if (sid) {

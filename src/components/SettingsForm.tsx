@@ -21,7 +21,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
     setSuccess(null);
 
     if (newPassword && newPassword !== confirmPassword) {
-      setError("Konfirmasi password baru tidak cocok");
+      setError("New password confirmation does not match");
       return;
     }
     setSaving(true);
@@ -37,15 +37,15 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.error ?? "Gagal menyimpan perubahan");
+        setError(data.error ?? "Failed to save changes");
         return;
       }
-      setSuccess("Tersimpan. Kredensial login sudah diperbarui.");
+      setSuccess("Saved. Login credentials updated.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch {
-      setError("Tidak bisa terhubung ke server");
+      setError("Cannot reach the server");
     } finally {
       setSaving(false);
     }
@@ -60,16 +60,16 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
             href="/"
             className="text-xs text-neutral-400 transition-colors hover:text-neutral-200"
           >
-            ← Kembali ke dashboard
+            ← Back to dashboard
           </Link>
         </div>
 
         <AppSettingsCard />
 
         <div className="rounded-2xl border border-neutral-800/80 bg-neutral-900/70 p-6 shadow-xl shadow-black/30">
-          <h2 className="mb-1 text-sm font-semibold text-neutral-100">Akun Login</h2>
+          <h2 className="mb-1 text-sm font-semibold text-neutral-100">Login Account</h2>
           <p className="mb-4 text-xs text-neutral-500">
-            Ubah username dan/atau password untuk masuk ke dashboard ini.
+            Change the username and/or password used to sign in to this dashboard.
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-3.5">
@@ -83,7 +83,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
             </div>
             <div>
               <label className="mb-1 block text-xs font-medium text-neutral-400">
-                Password Baru <span className="text-neutral-600">(min. 8 karakter, kosongkan jika tidak diganti)</span>
+                New Password <span className="text-neutral-600">(min. 8 characters, leave empty to keep the current one)</span>
               </label>
               <input
                 value={newPassword}
@@ -95,7 +95,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
             {newPassword && (
               <div>
                 <label className="mb-1 block text-xs font-medium text-neutral-400">
-                  Konfirmasi Password Baru
+                  Confirm New Password
                 </label>
                 <input
                   value={confirmPassword}
@@ -107,7 +107,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
             )}
             <div className="border-t border-neutral-800 pt-3.5">
               <label className="mb-1 block text-xs font-medium text-neutral-400">
-                Password Saat Ini <span className="text-neutral-600">(wajib, untuk konfirmasi)</span>
+                Current Password <span className="text-neutral-600">(required, for confirmation)</span>
               </label>
               <input
                 value={currentPassword}
@@ -126,7 +126,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
               disabled={saving}
               className="w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white transition-colors hover:bg-emerald-500 disabled:opacity-50"
             >
-              {saving ? "Menyimpan..." : "Simpan Perubahan"}
+              {saving ? "Saving..." : "Save Changes"}
             </button>
           </form>
         </div>

@@ -14,10 +14,10 @@ Dashboard monitoring real-time yang di-host sendiri untuk **website**, **server 
 
 ## Fitur
 
-- **Website**: cek HTTP(S) dengan interval sendiri, response time, heartbeat bar, dan persentase uptime.
+- **Website**: cek HTTP(S) dengan interval sendiri, response time, heartbeat bar, dan persentase uptime. Cek yang gagal dicoba ulang dulu (tampil kuning sebagai *RETRYING*, jumlah dan jeda retry diatur sendiri) dan baru dinyatakan *DOWN* kalau semua retry juga gagal, jadi gangguan sesaat tidak langsung membunyikan alarm.
 - **Server**: load average, RAM, pemakaian disk root, dan uptime lewat SSH (password atau private key). Satu koneksi SSH per host dibuka sekali lalu dipakai ulang, jadi refresh tiap 1 detik tetap ringan.
 - **NAS**: metrik SSH yang sama, ditambah suhu dan status SMART tiap disk dari **Synology DSM**.
-- **Semua diatur dari UI**: tambah website, server, dan NAS sebanyak apa pun; edit, jeda, atau hapus. Tombol *Test koneksi* mengecek SSH/DSM sebelum disimpan.
+- **Semua diatur dari UI**: tambah website, server, dan NAS sebanyak apa pun; edit, jeda, atau hapus. Tombol *Test connection* mengecek SSH/DSM sebelum disimpan.
 - **Live**: browser menerima pembaruan lewat WebSocket, tanpa polling dan tanpa refresh halaman.
 - **Notifikasi suara di browser** saat website, server, atau NAS down atau pulih, dengan jam senyap. Suaranya bisa diganti sendiri lewat Settings.
 - **Branding sendiri**: nama aplikasi dan logo diatur di Settings.
@@ -51,7 +51,7 @@ Installer akan:
 4. Menanyakan password login. Kalau dikosongkan, password acak dibuat dan ditampilkan di akhir.
 5. Memasang dan menjalankan `kroombox-monitor.service`.
 
-Setelah itu, buka `http://<ip-server>:3400`, login, lalu pakai tombol **+ Tambah** untuk menambah website, server, dan NAS.
+Setelah itu, buka `http://<ip-server>:3400`, login, lalu pakai tombol **+ Add** untuk menambah website, server, dan NAS.
 
 Opsi yang sering dipakai:
 

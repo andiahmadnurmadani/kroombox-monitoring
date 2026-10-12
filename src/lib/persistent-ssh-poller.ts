@@ -27,25 +27,25 @@ export function connectConfig(target: SshTarget): ConnectConfig {
 /** Maps ssh2/socket errors to a short, actionable message for the dashboard. */
 export function describeSshError(err: unknown): string {
   const e = err as { level?: string; code?: string; message?: string } | undefined;
-  if (e?.level === "client-authentication") return "Login SSH ditolak (username/password/key salah)";
-  if (e?.level === "client-timeout") return "Timeout saat menyambung SSH";
+  if (e?.level === "client-authentication") return "SSH login rejected (wrong username/password/key)";
+  if (e?.level === "client-timeout") return "Timed out connecting over SSH";
   switch (e?.code) {
     case "ECONNREFUSED":
-      return "Port SSH menolak koneksi";
+      return "SSH port refused the connection";
     case "EHOSTUNREACH":
     case "ENETUNREACH":
-      return "Host tidak terjangkau dari server monitoring";
+      return "Host unreachable from the monitoring server";
     case "ETIMEDOUT":
-      return "Timeout saat menyambung SSH";
+      return "Timed out connecting over SSH";
     case "ENOTFOUND":
     case "EAI_AGAIN":
-      return "Hostname tidak ditemukan (DNS)";
+      return "Hostname not found (DNS)";
     case "ECONNRESET":
-      return "Koneksi SSH diputus";
+      return "SSH connection was reset";
   }
   const msg = e?.message ?? String(err);
-  if (/Cannot parse privateKey|Encrypted private key/i.test(msg)) return "Private key tidak bisa dibaca (passphrase salah?)";
-  return msg || "Tidak terjangkau";
+  if (/Cannot parse privateKey|Encrypted private key/i.test(msg)) return "Cannot read the private key (wrong passphrase?)";
+  return msg || "Unreachable";
 }
 
 /**
@@ -152,7 +152,7 @@ export class PersistentSshPoller<T> {
         this.resetConnection(),
       );
       if (this.stopped) return;
-      this.onResult(result, result === null ? "Perintah metrik gagal dijalankan (host bukan Linux?)" : null);
+      this.onResult(result, result === null ? "Metrics command failed (not a Linux host?)" : null);
     } catch (err) {
       if (this.stopped) return;
       this.onResult(null, describeSshError(err));
@@ -215,7 +215,7 @@ export function execParse<T>(conn: Client, command: string, parse: (out: string)
   });
 }
 
-/** One connect + one command + disconnect: used by the "Test koneksi" button. */
+/** One connect + one command + disconnect: used by the "Test connection" button. */
 export function sshProbe<T>(
   target: SshTarget,
   command: string,
@@ -233,10 +233,10 @@ export function sshProbe<T>(
     conn
       .on("ready", async () => {
         const result = await execParse(conn, command, parse);
-        done({ result, error: result === null ? "Login berhasil, tapi perintah metrik gagal (host bukan Linux?)" : null });
+        done({ result, error: result === null ? "Login succeeded, but the metrics command failed (not a Linux host?)" : null });
       })
       .on("error", (err) => done({ result: null, error: describeSshError(err) }))
-      .on("close", () => done({ result: null, error: "Koneksi SSH diputus" }))
+      .on("close", () => done({ result: null, error: "SSH connection was reset" }))
       .connect(connectConfig(target));
   });
 }

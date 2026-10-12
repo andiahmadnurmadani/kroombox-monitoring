@@ -173,7 +173,7 @@ class InfraMonitor {
     try {
       writeJson(dataFile(STATUS_FILE), this.list());
     } catch (e) {
-      console.error("Gagal menyimpan hosts-status.json:", e);
+      console.error("Failed to persist hosts-status.json:", e);
     }
   }
 }
