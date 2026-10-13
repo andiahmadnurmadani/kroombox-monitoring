@@ -17,8 +17,8 @@ if [ -f "$CONF_DIR/$APP.env" ]; then
   DATA_DIR=${configured:-$DATA_DIR}
 fi
 
-systemctl disable --now "$APP" 2>/dev/null || true
-rm -f "/etc/systemd/system/$APP.service" "/usr/local/bin/$APP"
+systemctl disable --now "$APP" "$APP-updater.path" "$APP-updater.timer" 2>/dev/null || true
+rm -f "/etc/systemd/system/$APP.service" "/etc/systemd/system/$APP-updater".{service,path,timer} "/usr/local/bin/$APP"
 systemctl daemon-reload
 rm -rf "$INSTALL_DIR"
 echo "Service and application in $INSTALL_DIR removed."

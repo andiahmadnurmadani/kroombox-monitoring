@@ -3,17 +3,7 @@
 import type { Monitor } from "@/lib/types";
 import HeartbeatBar from "./HeartbeatBar";
 import CardActions from "./CardActions";
-
-function timeAgo(ts: number | null): string {
-  if (!ts) return "never checked";
-  const diff = Math.max(0, Date.now() - ts);
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s ago`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  return `${h}h ago`;
-}
+import { timeAgo } from "./format";
 
 // checks that failed but were still being retried are left out: they never became an outage
 function uptimePercent(history: Monitor["history"]): number | null {
@@ -101,7 +91,7 @@ export default function MonitorCard({
             {monitor.lastResponseTimeMs !== null ? `${monitor.lastResponseTimeMs}ms` : "—"}
           </span>
           {uptime !== null && <span title="Uptime">{uptime}%</span>}
-          <span title="Last checked">{timeAgo(monitor.lastCheckedAt)}</span>
+          <span title="Last checked">{monitor.lastCheckedAt ? timeAgo(monitor.lastCheckedAt) : "never checked"}</span>
         </div>
       </div>
     </div>

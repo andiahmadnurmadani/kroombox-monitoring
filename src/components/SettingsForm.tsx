@@ -5,6 +5,7 @@ import Link from "next/link";
 import SoundSettingsCard from "./SoundSettingsCard";
 import AppSettingsCard from "./AppSettingsCard";
 import SoundFilesCard from "./SoundFilesCard";
+import UpdatesCard from "./UpdatesCard";
 
 export default function SettingsForm({ currentUsername }: { currentUsername: string }) {
   const [currentPassword, setCurrentPassword] = useState("");
@@ -133,6 +134,7 @@ export default function SettingsForm({ currentUsername }: { currentUsername: str
 
         <SoundSettingsCard />
         <SoundFilesCard />
+        <UpdatesCard />
       </div>
     </div>
   );

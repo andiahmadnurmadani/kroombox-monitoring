@@ -1,0 +1,11 @@
+# Template — installed by scripts/install.sh. Starts the updater as soon as the
+# dashboard asks for an update check or an update ("Settings → Updates").
+[Unit]
+Description=Kroombox Monitor update requests from the dashboard
+
+[Path]
+DirectoryNotEmpty=@DATA_DIR@/update-requests
+Unit=kroombox-monitor-updater.service
+
+[Install]
+WantedBy=paths.target

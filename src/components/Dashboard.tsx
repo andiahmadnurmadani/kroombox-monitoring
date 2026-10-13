@@ -45,6 +45,7 @@ export default function Dashboard({ appName }: { appName: string }) {
   const [editing, setEditing] = useState<Monitor | null>(null);
   const [search, setSearch] = useState("");
   const [sortOrder, setSortOrder] = useState<"name-asc" | "name-desc" | "default">("name-asc");
+  const [updateAvailable, setUpdateAvailable] = useState(false);
 
   // last-seen status per monitor id, so we can tell a down->up *transition*
   // apart from "it was already up" — undefined until the first snapshot arrives
@@ -65,6 +66,18 @@ export default function Dashboard({ appName }: { appName: string }) {
         if (data.settings) soundSettingsRef.current = data.settings;
       })
       .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    // the updater checks GitHub every few hours; just surface its result here
+    const load = () =>
+      fetch("/api/update", { cache: "no-store" })
+        .then((res) => res.json())
+        .then((data) => setUpdateAvailable(!!data.supported && !!data.status?.updateAvailable && data.status.state === "idle"))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, 30 * 60_000);
+    return () => clearInterval(t);
   }, []);
 
   useEffect(() => {
@@ -314,6 +327,16 @@ export default function Dashboard({ appName }: { appName: string }) {
               </>
             )}
           </div>
+          {updateAvailable && (
+            <Link
+              href="/settings#updates"
+              title="A new version is available"
+              className="flex items-center gap-1.5 rounded-full bg-sky-950/60 px-2.5 py-1 text-xs font-medium text-sky-300 ring-1 ring-inset ring-sky-800/50 transition-colors hover:bg-sky-900/60"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
+              Update available
+            </Link>
+          )}
           <Link
             href="/settings"
             title="Settings"

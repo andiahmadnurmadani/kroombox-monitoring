@@ -94,6 +94,10 @@ export npm_config_cache="$INSTALL_DIR/.npm-cache" NEXT_TELEMETRY_DISABLED=1
 "$NPM" ci --no-audit --no-fund --loglevel=error
 "$NPM" run build --silent
 rm -rf "$INSTALL_DIR/.npm-cache"
+# installed commit, shown in Settings → Updates and compared against GitHub by the updater
+if command -v git >/dev/null && git -C "$SRC_DIR" -c safe.directory="$SRC_DIR" rev-parse HEAD >/dev/null 2>&1; then
+  git -C "$SRC_DIR" -c safe.directory="$SRC_DIR" log -1 --format='{"sha":"%H","date":"%cI"}' > "$INSTALL_DIR/version.json"
+fi
 chown -R root:root "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR/.next/cache"
 chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR/.next/cache"
@@ -115,10 +119,12 @@ else
 fi
 chown root:"$SERVICE_USER" "$ENV_FILE"
 chmod 0640 "$ENV_FILE"
-echo "SOURCE_DIR=$SRC_DIR" > "$CONF_DIR/install.conf"
+printf 'SOURCE_DIR=%s\nINSTALL_DIR=%s\nSERVICE_USER=%s\n' "$SRC_DIR" "$INSTALL_DIR" "$SERVICE_USER" > "$CONF_DIR/install.conf"
 
 # --- data ------------------------------------------------------------------------
 mkdir -p "$DATA_DIR"
+# the dashboard drops update requests here; kroombox-monitor-updater.path picks them up
+mkdir -p "$DATA_DIR/update-requests"
 if [ -n "$IMPORT_DATA" ]; then
   if [ -f "$DATA_DIR/monitors.json" ] || [ -f "$DATA_DIR/auth.json" ]; then
     warn "$DATA_DIR already has data, skipping --import-data"
@@ -168,9 +174,13 @@ say "Installing systemd unit $UNIT_FILE"
 sed -e "s|@USER@|$SERVICE_USER|g" -e "s|@INSTALL_DIR@|$INSTALL_DIR|g" -e "s|@DATA_DIR@|$DATA_DIR|g" \
     -e "s|@CONF_DIR@|$CONF_DIR|g" -e "s|@NODE@|$NODE|g" -e "s|@PROTECT_HOME@|$PROTECT_HOME|g" \
     "$INSTALL_DIR/deploy/$APP.service" > "$UNIT_FILE"
+for unit in updater.service updater.path updater.timer; do
+  sed -e "s|@INSTALL_DIR@|$INSTALL_DIR|g" -e "s|@DATA_DIR@|$DATA_DIR|g" -e "s|@NODE@|$NODE|g" \
+      "$INSTALL_DIR/deploy/$APP-$unit" > "/etc/systemd/system/$APP-$unit"
+done
 install -m 0755 "$INSTALL_DIR/deploy/$APP-cli.sh" /usr/local/bin/$APP
 systemctl daemon-reload
-systemctl enable "$APP" >/dev/null 2>&1
+systemctl enable "$APP" "$APP-updater.path" "$APP-updater.timer" >/dev/null 2>&1
 
 if [ $START = 0 ]; then
   say "Done (--no-start). Start it with: sudo systemctl start $APP"
@@ -179,6 +189,7 @@ fi
 
 say "Starting the service"
 systemctl restart "$APP"
+systemctl start "$APP-updater.path" "$APP-updater.timer"
 PORT_NOW=$(sed -n 's/^PORT=//p' "$ENV_FILE" | tail -1)
 for _ in $(seq 1 60); do
   if "$NODE" -e 'fetch(process.argv[1]).then(r=>process.exit(r.ok?0:1),()=>process.exit(1))' \

@@ -25,3 +25,14 @@ export function formatUptime(sec: number): string {
 export function loadTitle(l: { load1: number; load5: number; load15: number; cores: number | null }) {
   return `1m ${l.load1.toFixed(2)} · 5m ${l.load5.toFixed(2)} · 15m ${l.load15.toFixed(2)}${l.cores ? ` (${l.cores} ${l.cores === 1 ? "core" : "cores"})` : ""}`;
 }
+
+/** "5s ago", "3m ago", "2h ago", "4d ago". */
+export function timeAgo(ts: number): string {
+  const s = Math.floor(Math.max(0, Date.now() - ts) / 1000);
+  if (s < 60) return `${s}s ago`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}

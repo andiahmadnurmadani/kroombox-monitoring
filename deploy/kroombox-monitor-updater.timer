@@ -1,0 +1,13 @@
+# Template — installed by scripts/install.sh. Looks for a new version every 6 hours
+# (it only checks; installing always needs a click in the dashboard or `kroombox-monitor update`).
+[Unit]
+Description=Periodic Kroombox Monitor update check
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=6h
+RandomizedDelaySec=10min
+Unit=kroombox-monitor-updater.service
+
+[Install]
+WantedBy=timers.target

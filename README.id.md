@@ -68,9 +68,14 @@ kroombox-monitor status        # status systemd
 kroombox-monitor logs          # ikuti log
 kroombox-monitor restart
 kroombox-monitor passwd        # reset login dashboard (mis. lupa password)
+kroombox-monitor check-update  # cek versi baru di GitHub
 kroombox-monitor update        # git pull + build ulang, data tetap
 kroombox-monitor uninstall     # hapus layanan, data tetap (--purge untuk ikut menghapus data)
 ```
+
+### Update dari dashboard
+
+Installer juga memasang updater kecil yang berjalan sebagai root (`kroombox-monitor-updater.service`). Updater mengecek GitHub tiap 6 jam; kalau ada versi baru, header dashboard menampilkan **Update available**, dan **Settings → Updates → Update now** memasangnya (sama dengan `kroombox-monitor update`): folder sumber di-fast-forward, aplikasi di-build ulang dan direstart, lalu halaman memuat ulang sendiri. Data dan konfigurasi tetap. Dashboard tidak pernah menjalankan apa pun sebagai root, hanya menaruh file permintaan di `$DATA_DIR/update-requests` yang diambil oleh `kroombox-monitor-updater.path`. Folder sumber harus berupa git clone yang bersih (tanpa perubahan yang belum di-commit).
 
 ## Konfigurasi
 

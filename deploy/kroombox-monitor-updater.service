@@ -1,0 +1,16 @@
+# Template — scripts/install.sh fills in the @PLACEHOLDERS@ and installs it to
+# /etc/systemd/system/kroombox-monitor-updater.service.
+#
+# Runs as root on purpose: installing an update rewrites @INSTALL_DIR@ and the systemd
+# units. The dashboard itself stays unprivileged; it can only drop a request file into
+# @DATA_DIR@/update-requests (see kroombox-monitor-updater.path) or wait for the timer.
+[Unit]
+Description=Kroombox Monitor updater (checks for and installs updates)
+Documentation=https://github.com/andiahmadnurmadani/uptime-monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=@NODE@ @INSTALL_DIR@/scripts/updater.mjs worker
+TimeoutStartSec=30min
