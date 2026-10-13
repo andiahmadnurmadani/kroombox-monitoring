@@ -14,7 +14,7 @@ async function checkOnce(monitor: Monitor) {
       redirect: "follow",
       cache: "no-store",
       signal: controller.signal,
-      headers: { "User-Agent": "uptime-monitor/1.0" },
+      headers: { "User-Agent": "kroombox-monitoring/1.0" },
     });
     const ms = Date.now() - start;
     store.recordCheck(monitor.id, {

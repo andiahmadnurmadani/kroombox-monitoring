@@ -3,7 +3,7 @@
     <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
     <img src="docs/logo-light.png" alt="Kroombox logo" height="44" align="center">
   </picture>
-  Kroombox Monitor
+  Kroombox Monitoring
 </h1>
 
 Self-hosted, real-time monitoring dashboard for **websites**, **Linux servers** and **NAS** — one small Node.js service, no database, no agents to install on the machines you watch.
@@ -20,10 +20,11 @@ Self-hosted, real-time monitoring dashboard for **websites**, **Linux servers** 
 - **Everything is added in the UI** — any number of websites, servers and NAS; edit, pause or delete them; a *Test connection* button checks SSH/DSM before saving.
 - **Live** — the browser receives updates over a WebSocket; no polling, no page refresh.
 - **Alerts in the browser** — a sound when a website, server or NAS goes down or recovers, with quiet hours; upload your own sounds in Settings.
+- **One-click updates** — the header shows *Update available* when a new version is on GitHub; **Settings → Updates → Update now** installs it and keeps your data.
 - **Your branding** — app name and logo are set in Settings.
 - **Secure by default** — login required for everything, random first password, login rate limiting, credentials stored owner-only (`0600`) and never sent back to the browser, hardened systemd unit.
 
-The UI is in Bahasa Indonesia.
+The UI is in English.
 
 ## Requirements
 
@@ -34,8 +35,8 @@ The UI is in Bahasa Indonesia.
 ## Install (systemd)
 
 ```bash
-git clone https://github.com/andiahmadnurmadani/uptime-monitor.git
-cd uptime-monitor
+git clone https://github.com/andiahmadnurmadani/kroombox-monitoring.git
+cd kroombox-monitoring
 sudo ./scripts/install.sh
 ```
 

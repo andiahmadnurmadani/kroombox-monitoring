@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Kroombox Monitor — install or update as a systemd service (Linux only).
 #
-#   git clone https://github.com/andiahmadnurmadani/uptime-monitor.git
-#   cd uptime-monitor
+#   git clone https://github.com/andiahmadnurmadani/kroombox-monitoring.git
+#   cd kroombox-monitoring
 #   sudo ./scripts/install.sh            # fresh install or update (data is kept)
 #
 # Options (all optional):

@@ -5,8 +5,8 @@ Thanks for helping! Issues and pull requests are welcome in English or Bahasa In
 ## Setup
 
 ```bash
-git clone https://github.com/andiahmadnurmadani/uptime-monitor.git
-cd uptime-monitor
+git clone https://github.com/andiahmadnurmadani/kroombox-monitoring.git
+cd kroombox-monitoring
 npm install
 cp .env.example .env.local   # optional
 npm run dev                  # http://localhost:3400

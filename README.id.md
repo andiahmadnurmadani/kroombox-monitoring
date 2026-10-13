@@ -3,7 +3,7 @@
     <source media="(prefers-color-scheme: dark)" srcset="docs/logo-dark.png">
     <img src="docs/logo-light.png" alt="Kroombox logo" height="44" align="center">
   </picture>
-  Kroombox Monitor
+  Kroombox Monitoring
 </h1>
 
 Dashboard monitoring real-time yang di-host sendiri untuk **website**, **server Linux**, dan **NAS**: cukup satu layanan Node.js kecil, tanpa database, dan tanpa agen yang harus dipasang di mesin yang dipantau.
@@ -20,6 +20,7 @@ Dashboard monitoring real-time yang di-host sendiri untuk **website**, **server 
 - **Semua diatur dari UI**: tambah website, server, dan NAS sebanyak apa pun; edit, jeda, atau hapus. Tombol *Test connection* mengecek SSH/DSM sebelum disimpan.
 - **Live**: browser menerima pembaruan lewat WebSocket, tanpa polling dan tanpa refresh halaman.
 - **Notifikasi suara di browser** saat website, server, atau NAS down atau pulih, dengan jam senyap. Suaranya bisa diganti sendiri lewat Settings.
+- **Update sekali klik**: header menampilkan *Update available* saat ada versi baru di GitHub; **Settings → Updates → Update now** memasangnya tanpa menghapus data.
 - **Branding sendiri**: nama aplikasi dan logo diatur di Settings.
 - **Aman sejak awal**:
   - semua halaman wajib login;
@@ -38,8 +39,8 @@ Dashboard monitoring real-time yang di-host sendiri untuk **website**, **server 
 ## Pemasangan (systemd)
 
 ```bash
-git clone https://github.com/andiahmadnurmadani/uptime-monitor.git
-cd uptime-monitor
+git clone https://github.com/andiahmadnurmadani/kroombox-monitoring.git
+cd kroombox-monitoring
 sudo ./scripts/install.sh
 ```
 
