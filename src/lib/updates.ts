@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { dataFile, readJson } from "./data-dir";
+import { readJson } from "./data-dir";
 
 export interface CommitRef {
   sha: string;
@@ -25,11 +25,12 @@ export interface UpdateStatus {
 
 export type UpdateAction = "check" | "apply";
 
-const SPOOL_DIR = "update-requests";
+// set by the systemd unit; root-owned, the dashboard may only write into its requests/ folder
+const UPDATER_DIR = process.env.UPDATER_DIR || "";
 
-/** One-click updates only exist for the systemd install, which creates the spool directory. */
+/** One-click updates only exist for the systemd install, which creates the updater directory. */
 export function updatesSupported(): boolean {
-  return fs.existsSync(dataFile(SPOOL_DIR));
+  return !!UPDATER_DIR && fs.existsSync(path.join(UPDATER_DIR, "requests"));
 }
 
 /** The commit this copy was installed from (written by scripts/install.sh). */
@@ -38,10 +39,10 @@ export function installedVersion(): CommitRef | null {
 }
 
 export function readUpdateStatus(): UpdateStatus {
-  return readJson<UpdateStatus>(dataFile("update-status.json")) ?? {};
+  return (UPDATER_DIR && readJson<UpdateStatus>(path.join(UPDATER_DIR, "status.json"))) || {};
 }
 
 /** Ask the root updater (kroombox-monitor-updater.path) to check or install. */
 export function requestUpdate(action: UpdateAction) {
-  fs.writeFileSync(path.join(dataFile(SPOOL_DIR), action), String(Date.now()), { mode: 0o640 });
+  fs.writeFileSync(path.join(UPDATER_DIR, "requests", action), String(Date.now()), { mode: 0o640 });
 }

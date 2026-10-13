@@ -12,12 +12,14 @@ User=@USER@
 Group=@USER@
 WorkingDirectory=@INSTALL_DIR@
 EnvironmentFile=@CONF_DIR@/kroombox-monitor.env
+# one-click updates: status is read from here, requests go to its requests/ folder
+Environment=UPDATER_DIR=@UPDATER_DIR@
 ExecStart=@NODE@ @INSTALL_DIR@/node_modules/tsx/dist/cli.mjs server.ts
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=20
 
-# Hardening: the service only needs to write its data directory and Next's cache.
+# Hardening: the service only needs to write its data directory, Next's cache and update requests.
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=@PROTECT_HOME@
@@ -29,7 +31,7 @@ ProtectControlGroups=true
 RestrictSUIDSGID=true
 RestrictRealtime=true
 LockPersonality=true
-ReadWritePaths=@DATA_DIR@ @INSTALL_DIR@/.next/cache
+ReadWritePaths=@DATA_DIR@ @INSTALL_DIR@/.next/cache -@UPDATER_DIR@/requests
 UMask=0027
 
 [Install]

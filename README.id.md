@@ -75,7 +75,7 @@ kroombox-monitor uninstall     # hapus layanan, data tetap (--purge untuk ikut m
 
 ### Update dari dashboard
 
-Installer juga memasang updater kecil yang berjalan sebagai root (`kroombox-monitor-updater.service`). Updater mengecek GitHub tiap 6 jam; kalau ada versi baru, header dashboard menampilkan **Update available**, dan **Settings → Updates → Update now** memasangnya (sama dengan `kroombox-monitor update`): folder sumber di-fast-forward, aplikasi di-build ulang dan direstart, lalu halaman memuat ulang sendiri. Data dan konfigurasi tetap. Dashboard tidak pernah menjalankan apa pun sebagai root, hanya menaruh file permintaan di `$DATA_DIR/update-requests` yang diambil oleh `kroombox-monitor-updater.path`. Folder sumber harus berupa git clone yang bersih (tanpa perubahan yang belum di-commit).
+Installer juga memasang updater kecil yang berjalan sebagai root (`kroombox-monitor-updater.service`). Updater mengecek GitHub tiap 6 jam; kalau ada versi baru, header dashboard menampilkan **Update available**, dan **Settings → Updates → Update now** memasangnya (sama dengan `kroombox-monitor update`): folder sumber di-fast-forward, aplikasi di-build ulang dan direstart, lalu halaman memuat ulang sendiri. Data dan konfigurasi tetap. Dashboard tidak pernah menjalankan apa pun sebagai root, hanya menaruh file permintaan di `/var/lib/kroombox-monitor-updater/requests` yang diambil oleh `kroombox-monitor-updater.path`. Folder sumber harus berupa git clone yang bersih (tanpa perubahan yang belum di-commit).
 
 ## Konfigurasi
 

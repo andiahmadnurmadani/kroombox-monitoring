@@ -4,7 +4,7 @@
 Description=Kroombox Monitor update requests from the dashboard
 
 [Path]
-DirectoryNotEmpty=@DATA_DIR@/update-requests
+DirectoryNotEmpty=@UPDATER_DIR@/requests
 Unit=kroombox-monitor-updater.service
 
 [Install]

@@ -71,7 +71,7 @@ kroombox-monitor uninstall     # remove the service, keep data (--purge removes 
 
 ### Updating from the dashboard
 
-The installer also sets up a small root-only updater (`kroombox-monitor-updater.service`). It checks GitHub every 6 hours; when a new version exists the dashboard header shows **Update available**, and **Settings → Updates → Update now** installs it (the same as `kroombox-monitor update`): the source folder is fast-forwarded, the app is rebuilt and restarted, and the page reloads by itself. Data and configuration are kept. The dashboard never runs anything as root — it only drops a request file into `$DATA_DIR/update-requests`, which `kroombox-monitor-updater.path` picks up. The source folder must be a clean git clone (no uncommitted changes).
+The installer also sets up a small root-only updater (`kroombox-monitor-updater.service`). It checks GitHub every 6 hours; when a new version exists the dashboard header shows **Update available**, and **Settings → Updates → Update now** installs it (the same as `kroombox-monitor update`): the source folder is fast-forwarded, the app is rebuilt and restarted, and the page reloads by itself. Data and configuration are kept. The dashboard never runs anything as root — it only drops a request file into `/var/lib/kroombox-monitor-updater/requests`, which `kroombox-monitor-updater.path` picks up. The source folder must be a clean git clone (no uncommitted changes).
 
 ## Configuration
 

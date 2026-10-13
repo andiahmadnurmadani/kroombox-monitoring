@@ -18,8 +18,8 @@ function git(cwd: string, ...args: string[]) {
 /** origin (bare) ← work clone that publishes commits; src = the "source folder" the updater pulls into. */
 function setup() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "km-updater-"));
-  const dirs = { conf: path.join(root, "conf"), data: path.join(root, "data"), install: path.join(root, "opt"), origin: path.join(root, "origin.git"), work: path.join(root, "work"), src: path.join(root, "src") };
-  for (const d of [dirs.conf, dirs.data, dirs.install, path.join(dirs.data, "update-requests")]) fs.mkdirSync(d, { recursive: true });
+  const dirs = { conf: path.join(root, "conf"), data: path.join(root, "updater"), install: path.join(root, "opt"), origin: path.join(root, "origin.git"), work: path.join(root, "work"), src: path.join(root, "src") };
+  for (const d of [dirs.conf, dirs.data, dirs.install, path.join(dirs.data, "requests")]) fs.mkdirSync(d, { recursive: true });
   git(root, "init", "-q", "--bare", "-b", "main", dirs.origin);
   git(root, "clone", "-q", dirs.origin, dirs.work);
   git(dirs.work, "checkout", "-q", "-b", "main");
@@ -38,15 +38,14 @@ function setup() {
   const first = publish("first");
   git(root, "clone", "-q", dirs.origin, dirs.src);
   fs.writeFileSync(path.join(dirs.install, "version.json"), JSON.stringify({ sha: first, date: "2026-01-01T00:00:00Z" }));
-  fs.writeFileSync(path.join(dirs.conf, "kroombox-monitor.env"), `DATA_DIR=${dirs.data}\n`);
-  fs.writeFileSync(path.join(dirs.conf, "install.conf"), `SOURCE_DIR=${dirs.src}\nINSTALL_DIR=${dirs.install}\nSERVICE_USER=nobody-km-test\n`);
+  fs.writeFileSync(path.join(dirs.conf, "install.conf"), `SOURCE_DIR=${dirs.src}\nINSTALL_DIR=${dirs.install}\nSERVICE_USER=nobody-km-test\nUPDATER_DIR=${dirs.data}\n`);
   const run = (mode: string) => {
     try {
       execFileSync(process.execPath, [UPDATER, mode], { env: { ...process.env, KM_CONF_DIR: dirs.conf }, stdio: "pipe" });
     } catch {
       // failures are reported through the status file
     }
-    return JSON.parse(fs.readFileSync(path.join(dirs.data, "update-status.json"), "utf8"));
+    return JSON.parse(fs.readFileSync(path.join(dirs.data, "status.json"), "utf8"));
   };
   return { root, dirs, installer, publish, first, run };
 }
@@ -62,9 +61,9 @@ test("updater: check finds a new commit, a dashboard request installs it", () =>
     assert.equal(checked.behind, 1);
     assert.equal(checked.latest.sha, second);
 
-    fs.writeFileSync(path.join(t.dirs.data, "update-requests", "apply"), "1");
+    fs.writeFileSync(path.join(t.dirs.data, "requests", "apply"), "1");
     const done = t.run("worker");
-    assert.deepEqual(fs.readdirSync(path.join(t.dirs.data, "update-requests")), []);
+    assert.deepEqual(fs.readdirSync(path.join(t.dirs.data, "requests")), []);
     assert.equal(done.error, null);
     assert.equal(done.updateAvailable, false);
     assert.equal(done.installed.sha, second);

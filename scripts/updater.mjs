@@ -4,10 +4,12 @@
 //   node scripts/updater.mjs check     fetch the git source folder and record whether an update exists
 //   node scripts/updater.mjs apply     fast-forward the source folder and re-run scripts/install.sh
 //   node scripts/updater.mjs worker    what systemd runs: handle a request dropped by the dashboard
-//                                      into $DATA_DIR/update-requests ("apply" or "check"), else check
+//                                      into $UPDATER_DIR/requests ("apply" or "check"), else check
 //
-// The dashboard can only *ask* (by writing a file into the spool directory); it never gets root.
-// Results go to $DATA_DIR/update-status.json, which the dashboard reads.
+// The dashboard can only *ask* (by writing a file into the requests directory); it never gets root.
+// Everything the updater writes (status.json, update.log, the lock) lives in $UPDATER_DIR, which is
+// owned by root and only readable by the service user — never in the service-writable DATA_DIR, so
+// a compromised dashboard cannot plant symlinks for root to follow.
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -29,16 +31,15 @@ function readKeyValues(file) {
   }
 }
 
-const env = readKeyValues(path.join(CONF_DIR, `${APP}.env`));
 const conf = readKeyValues(path.join(CONF_DIR, "install.conf"));
-const DATA_DIR = env.DATA_DIR || `/var/lib/${APP}`;
 const SRC = conf.SOURCE_DIR;
 const INSTALL_DIR = conf.INSTALL_DIR || `/opt/${APP}`;
 const SERVICE_USER = conf.SERVICE_USER || APP;
-const STATUS_FILE = path.join(DATA_DIR, "update-status.json");
-const SPOOL_DIR = path.join(DATA_DIR, "update-requests");
-const LOG_FILE = path.join(DATA_DIR, "update.log");
-const LOCK_FILE = path.join(DATA_DIR, "update.lock");
+const UPDATER_DIR = conf.UPDATER_DIR || `/var/lib/${APP}-updater`;
+const STATUS_FILE = path.join(UPDATER_DIR, "status.json");
+const SPOOL_DIR = path.join(UPDATER_DIR, "requests");
+const LOG_FILE = path.join(UPDATER_DIR, "update.log");
+const LOCK_FILE = path.join(UPDATER_DIR, "update.lock");
 
 /** uid/gid/home of a passwd entry, looked up by name or uid. */
 function passwdEntry(match) {
@@ -50,6 +51,13 @@ function passwdEntry(match) {
 }
 
 const serviceUser = passwdEntry(SERVICE_USER);
+// fresh file only: never follow a symlink or reuse a file someone else created
+const NEW_FILE = fs.constants.O_WRONLY | fs.constants.O_CREAT | fs.constants.O_EXCL | fs.constants.O_NOFOLLOW;
+
+/** Let the dashboard (service user's group) read a file the updater wrote. */
+function shareWithService(fd) {
+  if (serviceUser && process.getuid?.() === 0) fs.fchownSync(fd, 0, serviceUser.gid);
+}
 
 function readStatus() {
   try {
@@ -62,8 +70,14 @@ function readStatus() {
 function writeStatus(patch) {
   const next = { ...readStatus(), ...patch };
   const tmp = `${STATUS_FILE}.${process.pid}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(next, null, 2), { mode: 0o640 });
-  if (serviceUser && process.getuid?.() === 0) fs.chownSync(tmp, 0, serviceUser.gid);
+  fs.rmSync(tmp, { force: true });
+  const fd = fs.openSync(tmp, NEW_FILE, 0o640);
+  try {
+    fs.writeSync(fd, JSON.stringify(next, null, 2));
+    shareWithService(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
   fs.renameSync(tmp, STATUS_FILE);
   return next;
 }
@@ -165,8 +179,9 @@ function stripAnsi(s) {
 
 function runInstaller() {
   return new Promise((resolve) => {
-    const log = fs.openSync(LOG_FILE, "w", 0o640);
-    if (serviceUser && process.getuid?.() === 0) fs.fchownSync(log, 0, serviceUser.gid);
+    fs.rmSync(LOG_FILE, { force: true });
+    const log = fs.openSync(LOG_FILE, NEW_FILE, 0o640);
+    shareWithService(log);
     let lines = [];
     let partial = "";
     let lastFlush = 0;
@@ -238,7 +253,7 @@ async function apply() {
 
 function takeLock() {
   try {
-    const fd = fs.openSync(LOCK_FILE, "wx", 0o600);
+    const fd = fs.openSync(LOCK_FILE, NEW_FILE, 0o600);
     fs.writeSync(fd, String(process.pid));
     fs.closeSync(fd);
     return true;
@@ -262,6 +277,7 @@ function takeRequests() {
   } catch {
     return [];
   }
+  // unlink only (never follows a symlink); the names are just "apply" / "check" flags
   for (const n of names) fs.rmSync(path.join(SPOOL_DIR, n), { force: true });
   return names;
 }
@@ -271,6 +287,7 @@ if (!["check", "apply", "worker"].includes(mode)) {
   console.error("Usage: updater.mjs check|apply|worker");
   process.exit(2);
 }
+fs.mkdirSync(UPDATER_DIR, { recursive: true, mode: 0o750 });
 if (!takeLock()) {
   console.error("Another update is already running.");
   process.exit(1);

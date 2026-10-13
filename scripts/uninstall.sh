@@ -24,7 +24,7 @@ rm -rf "$INSTALL_DIR"
 echo "Service and application in $INSTALL_DIR removed."
 
 if [ $PURGE = 1 ]; then
-  rm -rf "$DATA_DIR" "$CONF_DIR"
+  rm -rf "$DATA_DIR" "$CONF_DIR" "/var/lib/$APP-updater"
   userdel "$SERVICE_USER" 2>/dev/null || true
   echo "Data ($DATA_DIR), config ($CONF_DIR) and user $SERVICE_USER removed too."
 else

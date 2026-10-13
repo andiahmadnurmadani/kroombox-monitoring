@@ -24,6 +24,7 @@ CONF_DIR=/etc/$APP
 ENV_FILE=$CONF_DIR/$APP.env
 UNIT_FILE=/etc/systemd/system/$APP.service
 SERVICE_USER=${SERVICE_USER:-$APP}
+UPDATER_DIR=/var/lib/$APP-updater
 SRC_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 
 PORT=3400
@@ -119,12 +120,16 @@ else
 fi
 chown root:"$SERVICE_USER" "$ENV_FILE"
 chmod 0640 "$ENV_FILE"
-printf 'SOURCE_DIR=%s\nINSTALL_DIR=%s\nSERVICE_USER=%s\n' "$SRC_DIR" "$INSTALL_DIR" "$SERVICE_USER" > "$CONF_DIR/install.conf"
+printf 'SOURCE_DIR=%s\nINSTALL_DIR=%s\nSERVICE_USER=%s\nUPDATER_DIR=%s\n' "$SRC_DIR" "$INSTALL_DIR" "$SERVICE_USER" "$UPDATER_DIR" > "$CONF_DIR/install.conf"
+
+# --- updater state ---------------------------------------------------------------
+# Owned by root (the updater writes its status/log here), readable by the service.
+# The dashboard may only write into requests/ to ask for a check or an update.
+install -d -o root -g "$SERVICE_USER" -m 0750 "$UPDATER_DIR"
+install -d -o "$SERVICE_USER" -g "$SERVICE_USER" -m 0750 "$UPDATER_DIR/requests"
 
 # --- data ------------------------------------------------------------------------
 mkdir -p "$DATA_DIR"
-# the dashboard drops update requests here; kroombox-monitor-updater.path picks them up
-mkdir -p "$DATA_DIR/update-requests"
 if [ -n "$IMPORT_DATA" ]; then
   if [ -f "$DATA_DIR/monitors.json" ] || [ -f "$DATA_DIR/auth.json" ]; then
     warn "$DATA_DIR already has data, skipping --import-data"
@@ -173,9 +178,9 @@ case "$NODE" in /home/*|/root/*) PROTECT_HOME=read-only ;; esac
 say "Installing systemd unit $UNIT_FILE"
 sed -e "s|@USER@|$SERVICE_USER|g" -e "s|@INSTALL_DIR@|$INSTALL_DIR|g" -e "s|@DATA_DIR@|$DATA_DIR|g" \
     -e "s|@CONF_DIR@|$CONF_DIR|g" -e "s|@NODE@|$NODE|g" -e "s|@PROTECT_HOME@|$PROTECT_HOME|g" \
-    "$INSTALL_DIR/deploy/$APP.service" > "$UNIT_FILE"
+    -e "s|@UPDATER_DIR@|$UPDATER_DIR|g" "$INSTALL_DIR/deploy/$APP.service" > "$UNIT_FILE"
 for unit in updater.service updater.path updater.timer; do
-  sed -e "s|@INSTALL_DIR@|$INSTALL_DIR|g" -e "s|@DATA_DIR@|$DATA_DIR|g" -e "s|@NODE@|$NODE|g" \
+  sed -e "s|@INSTALL_DIR@|$INSTALL_DIR|g" -e "s|@UPDATER_DIR@|$UPDATER_DIR|g" -e "s|@NODE@|$NODE|g" \
       "$INSTALL_DIR/deploy/$APP-$unit" > "/etc/systemd/system/$APP-$unit"
 done
 install -m 0755 "$INSTALL_DIR/deploy/$APP-cli.sh" /usr/local/bin/$APP
